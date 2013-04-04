@@ -253,8 +253,8 @@ readDataRange vhd offset length =
 
 -- | Writes data to the given virtual address of the given VHD.
 writeDataRange :: Vhd -> VirtualByteAddress -> BL.ByteString -> IO ()
-writeDataRange vhd offset content = write (fromIntegral offset) content where
-
+writeDataRange vhd offset content = write (fromIntegral offset) content
+  where
     write offset content
         | offset > offsetMax = error "cannot write data past end of VHD."
         | BL.null content    = return ()
@@ -292,8 +292,8 @@ readDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount =
 
 -- | Unsafely reads data from the given sector range of the given virtual block of the given VHD.
 unsafeReadDataBlockRange :: Vhd -> VirtualBlockAddress -> BlockSectorAddress -> BlockSectorCount -> Ptr Word8 -> IO ()
-unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount resultPtr = buildResult where
-
+unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount resultPtr = buildResult
+  where
     buildResult :: IO ()
     buildResult = do
         B.memset resultPtr 0 $ fromIntegral $ sectorCount * sectorLength
