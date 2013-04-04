@@ -1,9 +1,9 @@
 module Data.Vhd.Checksum
-	( adjustFooterChecksum
-	, adjustHeaderChecksum
-	, verifyFooterChecksum
-	, verifyHeaderChecksum
-	) where
+    ( adjustFooterChecksum
+    , adjustHeaderChecksum
+    , verifyFooterChecksum
+    , verifyHeaderChecksum
+    ) where
 
 import Data.Bits
 import qualified Data.ByteString as B
@@ -17,25 +17,25 @@ plus a b = a + fromIntegral b
 
 getHeaderChecksum :: Header -> Checksum
 getHeaderChecksum header = complement $ B.foldl' plus 0 headerData
-	where
-		headerData = encode $ header { headerChecksum = 0 }
+    where
+        headerData = encode $ header { headerChecksum = 0 }
 
 getFooterChecksum :: Footer -> Checksum
 getFooterChecksum footer = complement $ B.foldl' plus 0 footerData
-	where footerData = encode $ footer { footerChecksum = 0 }
+    where footerData = encode $ footer { footerChecksum = 0 }
 
 adjustFooterChecksum :: Footer -> Footer
 adjustFooterChecksum f = f { footerChecksum = checksum }
-	where checksum = getFooterChecksum f
+    where checksum = getFooterChecksum f
 
 adjustHeaderChecksum :: Header -> Header
 adjustHeaderChecksum h = h { headerChecksum = checksum }
-	where checksum = getHeaderChecksum h
+    where checksum = getHeaderChecksum h
 
 verifyFooterChecksum :: Footer -> Bool
 verifyFooterChecksum f = footerChecksum f == checksum
-	where checksum = getFooterChecksum f
+    where checksum = getFooterChecksum f
 
 verifyHeaderChecksum :: Header -> Bool
 verifyHeaderChecksum h = headerChecksum h == checksum
-	where checksum = getHeaderChecksum h
+    where checksum = getHeaderChecksum h

@@ -14,84 +14,84 @@ import Data.Text.Encoding
 import Data.Vhd.Types
 
 instance Serialize Header where
-	get = Header
-		<$> getCookie
-		<*> getDataOffset
-		<*> getTableOffset
-		<*> getVersion
-		<*> getMaxTableEntries
-		<*> getBlockSize
-		<*> getChecksum
-		<*> getParentUniqueId
-		<*> getParentTimeStamp
-		<*> getByteString 4
-		<*> getParentUnicodeName
-		<*> getParentLocatorEntries
-		<*  getHeaderPadding
-	put h = do
-		putCookie               $ headerCookie               h
-		putDataOffset           $ headerDataOffset           h
-		putTableOffset          $ headerTableOffset          h
-		putVersion              $ headerVersion              h
-		putMaxTableEntries      $ headerMaxTableEntries      h
-		putBlockSize            $ headerBlockSize            h
-		putChecksum             $ headerChecksum             h
-		putParentUniqueId       $ headerParentUniqueId       h
-		putParentTimeStamp      $ headerParentTimeStamp      h
-		putByteString           $ headerReserved1            h
-		putParentUnicodeName    $ headerParentUnicodeName    h
-		putParentLocatorEntries $ headerParentLocatorEntries h
-		putHeaderPadding
+    get = Header
+        <$> getCookie
+        <*> getDataOffset
+        <*> getTableOffset
+        <*> getVersion
+        <*> getMaxTableEntries
+        <*> getBlockSize
+        <*> getChecksum
+        <*> getParentUniqueId
+        <*> getParentTimeStamp
+        <*> getByteString 4
+        <*> getParentUnicodeName
+        <*> getParentLocatorEntries
+        <*  getHeaderPadding
+    put h = do
+        putCookie               $ headerCookie               h
+        putDataOffset           $ headerDataOffset           h
+        putTableOffset          $ headerTableOffset          h
+        putVersion              $ headerVersion              h
+        putMaxTableEntries      $ headerMaxTableEntries      h
+        putBlockSize            $ headerBlockSize            h
+        putChecksum             $ headerChecksum             h
+        putParentUniqueId       $ headerParentUniqueId       h
+        putParentTimeStamp      $ headerParentTimeStamp      h
+        putByteString           $ headerReserved1            h
+        putParentUnicodeName    $ headerParentUnicodeName    h
+        putParentLocatorEntries $ headerParentLocatorEntries h
+        putHeaderPadding
 
 instance Serialize Footer where
-	get = Footer
-		<$> getCookie
-		<*> getIsTemporaryDisk
-		<*> getFormatVersion
-		<*> getDataOffset
-		<*> getTimeStamp
-		<*> getCreatorApplication
-		<*> getCreatorVersion
-		<*> getCreatorHostOs
-		<*> getOriginalSize
-		<*> getCurrentSize
-		<*> getDiskGeometry
-		<*> getDiskType
-		<*> getChecksum
-		<*> getUniqueId
-		<*> getIsSavedState
-		<*  getFooterPadding
-	put f = do
-		putCookie             $ footerCookie             f
-		putIsTemporaryDisk    $ footerIsTemporaryDisk    f
-		putFormatVersion      $ footerFormatVersion      f
-		putDataOffset         $ footerDataOffset         f
-		putTimeStamp          $ footerTimeStamp          f
-		putCreatorApplication $ footerCreatorApplication f
-		putCreatorVersion     $ footerCreatorVersion     f
-		putCreatorHostOs      $ footerCreatorHostOs      f
-		putOriginalSize       $ footerOriginalSize       f
-		putCurrentSize        $ footerCurrentSize        f
-		putDiskGeometry       $ footerDiskGeometry       f
-		putDiskType           $ footerDiskType           f
-		putChecksum           $ footerChecksum           f
-		putUniqueId           $ footerUniqueId           f
-		putIsSavedState       $ footerIsSavedState       f
-		putFooterPadding
+    get = Footer
+        <$> getCookie
+        <*> getIsTemporaryDisk
+        <*> getFormatVersion
+        <*> getDataOffset
+        <*> getTimeStamp
+        <*> getCreatorApplication
+        <*> getCreatorVersion
+        <*> getCreatorHostOs
+        <*> getOriginalSize
+        <*> getCurrentSize
+        <*> getDiskGeometry
+        <*> getDiskType
+        <*> getChecksum
+        <*> getUniqueId
+        <*> getIsSavedState
+        <*  getFooterPadding
+    put f = do
+        putCookie             $ footerCookie             f
+        putIsTemporaryDisk    $ footerIsTemporaryDisk    f
+        putFormatVersion      $ footerFormatVersion      f
+        putDataOffset         $ footerDataOffset         f
+        putTimeStamp          $ footerTimeStamp          f
+        putCreatorApplication $ footerCreatorApplication f
+        putCreatorVersion     $ footerCreatorVersion     f
+        putCreatorHostOs      $ footerCreatorHostOs      f
+        putOriginalSize       $ footerOriginalSize       f
+        putCurrentSize        $ footerCurrentSize        f
+        putDiskGeometry       $ footerDiskGeometry       f
+        putDiskType           $ footerDiskType           f
+        putChecksum           $ footerChecksum           f
+        putUniqueId           $ footerUniqueId           f
+        putIsSavedState       $ footerIsSavedState       f
+        putFooterPadding
 
 instance Serialize BatmapHeader where
-	get = BatmapHeader
-		<$> getCookie
-		<*> getDataOffset
-		<*> getWord32be
-		<*> getVersion
-		<*> getChecksum
-	put b = do
-		putCookie     $ batmapHeaderCookie   b
-		putDataOffset $ batmapHeaderOffset   b
-		putWord32be   $ batmapHeaderSize     b
-		putVersion    $ batmapHeaderVersion  b
-		putChecksum   $ batmapHeaderChecksum b
+    get = BatmapHeader
+        <$> getCookie
+        <*> getDataOffset
+        <*> getWord32be
+        <*> getVersion
+        <*> getChecksum
+    put b = do
+        putCookie     $ batmapHeaderCookie   b
+        putDataOffset $ batmapHeaderOffset   b
+        putWord32be   $ batmapHeaderSize     b
+        putVersion    $ batmapHeaderVersion  b
+        putChecksum   $ batmapHeaderChecksum b
 
 footerPaddingLength = 427
 getFooterPadding = getByteString footerPaddingLength
@@ -127,23 +127,23 @@ getCreatorApplication = creatorApplication <$> getByteString 4
 putCreatorApplication (CreatorApplication c) = putByteString c
 
 getCreatorHostOs = convert <$> getWord32be where
-	convert 0x4D616320 = CreatorHostOsMacintosh
-	convert 0x5769326B = CreatorHostOsWindows
-	convert _          = CreatorHostOsUnknown
+    convert 0x4D616320 = CreatorHostOsMacintosh
+    convert 0x5769326B = CreatorHostOsWindows
+    convert _          = CreatorHostOsUnknown
 putCreatorHostOs v = putWord32be $ case v of
-	CreatorHostOsMacintosh -> 0x4D616320
-	CreatorHostOsWindows   -> 0x5769326B
-	CreatorHostOsUnknown   -> 0
+    CreatorHostOsMacintosh -> 0x4D616320
+    CreatorHostOsWindows   -> 0x5769326B
+    CreatorHostOsUnknown   -> 0
 
 getDiskType = convert <$> getWord32be where
-	convert 2 = DiskTypeFixed
-	convert 3 = DiskTypeDynamic
-	convert 4 = DiskTypeDifferencing
-	convert _ = error "invalid disk type"
+    convert 2 = DiskTypeFixed
+    convert 3 = DiskTypeDynamic
+    convert 4 = DiskTypeDifferencing
+    convert _ = error "invalid disk type"
 putDiskType v = putWord32be $ case v of
-	DiskTypeFixed        -> 2
-	DiskTypeDynamic      -> 3
-	DiskTypeDifferencing -> 4
+    DiskTypeFixed        -> 2
+    DiskTypeDynamic      -> 3
+    DiskTypeDifferencing -> 4
 
 getDiskGeometry = DiskGeometry <$> getWord16be <*> getWord8 <*> getWord8
 putDiskGeometry (DiskGeometry c h s) = putWord16be c >> putWord8 h >> putWord8 s
@@ -169,13 +169,13 @@ getFormatVersion  = getVersion
 putFormatVersion  = putVersion
 
 getParentUnicodeName = parentUnicodeName . demarshall <$> getByteString 512
-	where demarshall = takeWhile ((/=) '\0') . T.unpack . decodeUtf16BE
+    where demarshall = takeWhile ((/=) '\0') . T.unpack . decodeUtf16BE
 putParentUnicodeName (ParentUnicodeName c)
-	| blen > 512 = error "parent unicode name length is greater than 512"
-	| otherwise  = putByteString b >> putByteString (B.replicate (512 - blen) 0)
-	where
-		b    = encodeUtf16BE $ T.pack c
-		blen = B.length b
+    | blen > 512 = error "parent unicode name length is greater than 512"
+    | otherwise  = putByteString b >> putByteString (B.replicate (512 - blen) 0)
+    where
+        b    = encodeUtf16BE $ T.pack c
+        blen = B.length b
 
 getParentLocatorEntry = parentLocatorEntry <$> getByteString 24
 putParentLocatorEntry (ParentLocatorEntry e) = putByteString e

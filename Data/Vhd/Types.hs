@@ -11,45 +11,45 @@ import System.Random
 import Text.Printf
 
 data Header = Header
-	{ headerCookie               :: Cookie
-	, headerDataOffset           :: PhysicalByteAddress
-	, headerTableOffset          :: PhysicalByteAddress
-	, headerVersion              :: Version
-	, headerMaxTableEntries      :: VirtualBlockCount
-	, headerBlockSize            :: BlockByteCount
-	, headerChecksum             :: Checksum
-	, headerParentUniqueId       :: UniqueId
-	, headerParentTimeStamp      :: TimeStamp
-	, headerReserved1            :: B.ByteString
-	, headerParentUnicodeName    :: ParentUnicodeName
-	, headerParentLocatorEntries :: ParentLocatorEntries
-	} deriving (Show, Eq)
+    { headerCookie               :: Cookie
+    , headerDataOffset           :: PhysicalByteAddress
+    , headerTableOffset          :: PhysicalByteAddress
+    , headerVersion              :: Version
+    , headerMaxTableEntries      :: VirtualBlockCount
+    , headerBlockSize            :: BlockByteCount
+    , headerChecksum             :: Checksum
+    , headerParentUniqueId       :: UniqueId
+    , headerParentTimeStamp      :: TimeStamp
+    , headerReserved1            :: B.ByteString
+    , headerParentUnicodeName    :: ParentUnicodeName
+    , headerParentLocatorEntries :: ParentLocatorEntries
+    } deriving (Show, Eq)
 
 data Footer = Footer
-	{ footerCookie             :: Cookie
-	, footerIsTemporaryDisk    :: Bool
-	, footerFormatVersion      :: Version
-	, footerDataOffset         :: PhysicalByteAddress
-	, footerTimeStamp          :: TimeStamp
-	, footerCreatorApplication :: CreatorApplication
-	, footerCreatorVersion     :: Version
-	, footerCreatorHostOs      :: CreatorHostOs
-	, footerOriginalSize       :: VirtualByteCount
-	, footerCurrentSize        :: VirtualByteCount
-	, footerDiskGeometry       :: DiskGeometry
-	, footerDiskType           :: DiskType
-	, footerChecksum           :: Checksum
-	, footerUniqueId           :: UniqueId
-	, footerIsSavedState       :: Bool
-	} deriving (Show, Eq)
+    { footerCookie             :: Cookie
+    , footerIsTemporaryDisk    :: Bool
+    , footerFormatVersion      :: Version
+    , footerDataOffset         :: PhysicalByteAddress
+    , footerTimeStamp          :: TimeStamp
+    , footerCreatorApplication :: CreatorApplication
+    , footerCreatorVersion     :: Version
+    , footerCreatorHostOs      :: CreatorHostOs
+    , footerOriginalSize       :: VirtualByteCount
+    , footerCurrentSize        :: VirtualByteCount
+    , footerDiskGeometry       :: DiskGeometry
+    , footerDiskType           :: DiskType
+    , footerChecksum           :: Checksum
+    , footerUniqueId           :: UniqueId
+    , footerIsSavedState       :: Bool
+    } deriving (Show, Eq)
 
 data BatmapHeader = BatmapHeader
-	{ batmapHeaderCookie       :: Cookie
-	, batmapHeaderOffset       :: PhysicalByteAddress
-	, batmapHeaderSize         :: Word32
-	, batmapHeaderVersion      :: Version
-	, batmapHeaderChecksum     :: Checksum
-	} deriving (Show, Eq)
+    { batmapHeaderCookie       :: Cookie
+    , batmapHeaderOffset       :: PhysicalByteAddress
+    , batmapHeaderSize         :: Word32
+    , batmapHeaderVersion      :: Version
+    , batmapHeaderChecksum     :: Checksum
+    } deriving (Show, Eq)
 
 type BlockByteAddress            = Word32
 type BlockByteCount              = Word32
@@ -76,19 +76,19 @@ type VersionMajor = Word16
 type VersionMinor = Word16
 
 data CreatorHostOs
-	= CreatorHostOsUnknown
-	| CreatorHostOsWindows
-	| CreatorHostOsMacintosh deriving (Show, Eq)
+    = CreatorHostOsUnknown
+    | CreatorHostOsWindows
+    | CreatorHostOsMacintosh deriving (Show, Eq)
 
 data DiskGeometry = DiskGeometry
-	DiskGeometryCylinders
-	DiskGeometryHeads
-	DiskGeometrySectorsPerTrack deriving (Show, Eq)
+    DiskGeometryCylinders
+    DiskGeometryHeads
+    DiskGeometrySectorsPerTrack deriving (Show, Eq)
 
 data DiskType
-	= DiskTypeFixed
-	| DiskTypeDynamic
-	| DiskTypeDifferencing deriving (Show, Eq)
+    = DiskTypeFixed
+    | DiskTypeDynamic
+    | DiskTypeDifferencing deriving (Show, Eq)
 
 newtype Cookie               = Cookie             B.ByteString deriving (Show, Eq)
 newtype CreatorApplication   = CreatorApplication B.ByteString deriving (Show, Eq)
@@ -97,8 +97,8 @@ newtype ParentUnicodeName    = ParentUnicodeName  String       deriving (Show, E
 newtype UniqueId             = UniqueId           B.ByteString deriving (Eq)
 
 instance Show UniqueId where
-	show (UniqueId b) = intercalate "-" $ map disp [[0 .. 3], [4, 5], [6, 7], [8, 9], [10 .. 15]]
-		where disp = concatMap (printf "%02x" . B.index b)
+    show (UniqueId b) = intercalate "-" $ map disp [[0 .. 3], [4, 5], [6, 7], [8, 9], [10 .. 15]]
+        where disp = concatMap (printf "%02x" . B.index b)
 
 newtype ParentLocatorEntries = ParentLocatorEntries [ParentLocatorEntry] deriving (Show, Eq)
 
@@ -109,14 +109,14 @@ parentLocatorEntry   e = assert (B.length e ==  24) $ ParentLocatorEntry   e
 uniqueId             i = assert (B.length i ==  16) $ UniqueId             i
 
 parentUnicodeName n
-	| encodedLength > 512 = error "parent unicode name length must be <= 512 bytes"
-	| otherwise           = ParentUnicodeName n
-	where
-		encodedLength = B.length $ encodeUtf16BE $ T.pack n
+    | encodedLength > 512 = error "parent unicode name length must be <= 512 bytes"
+    | otherwise           = ParentUnicodeName n
+    where
+        encodedLength = B.length $ encodeUtf16BE $ T.pack n
 
 randomUniqueId :: IO UniqueId
 randomUniqueId
-	= liftM (uniqueId . B.pack)
-	$ replicateM 16
-	$ liftM fromIntegral
-	$ randomRIO (0 :: Int, 255)
+    = liftM (uniqueId . B.pack)
+    $ replicateM 16
+    $ liftM fromIntegral
+    $ randomRIO (0 :: Int, 255)

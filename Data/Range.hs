@@ -3,13 +3,13 @@
 {-# LANGUAGE TypeSynonymInstances   #-}
 
 module Data.Range
-	( Range
-	, RangeLength
-	, range
-	, length
-	, minimum
-	, maximum
-	) where
+    ( Range
+    , RangeLength
+    , range
+    , length
+    , minimum
+    , maximum
+    ) where
 
 import Control.Exception
 import Data.Word
