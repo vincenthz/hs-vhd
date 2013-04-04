@@ -92,12 +92,32 @@ showBlockSize i
 showChecksum checksum isValid =
     printf "%08x (%s)" checksum (if isValid then "valid" else "invalid")
 
+cmdHelp _ = usage Nothing
+
+cmdPropSetUuid args = do
+    return ()
+
+knownCommands =
+    [ ("convert", cmdConvert)
+    , ("create",  cmdCreate)
+    , ("extract", cmdExtract)
+    , ("prop-get",cmdPropGet)
+    , ("set-uuid",cmdPropSetUuid)
+    , ("read"    ,cmdRead)
+    , ("snapshot",cmdSnapshot)
+    , ("help"    ,cmdHelp)
+    ]
+
+usage msg = do
+    maybe (return ()) putStrLn msg
+    putStrLn "usage: vhd <command>"
+    putStrLn ""
+    mapM_ (putStrLn . ("  " ++) . fst) knownCommands
+
 main = do
     args <- getArgs
     case args of
-        "convert"  : xs -> cmdConvert  xs
-        "create"   : xs -> cmdCreate   xs
-        "extract"  : xs -> cmdExtract  xs
-        "prop-get" : xs -> cmdPropGet  xs
-        "read"     : xs -> cmdRead     xs
-        "snapshot" : xs -> cmdSnapshot xs
+        []       -> usage Nothing
+        cmd : xs -> case lookup cmd knownCommands of
+                        Nothing -> usage $ Just ("unknown command: " ++ cmd)
+                        Just f  -> f xs
