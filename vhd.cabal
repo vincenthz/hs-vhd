@@ -11,12 +11,8 @@ Stability:           Experimental
 Category:            System
 Build-type:          Simple
 Homepage:            https://github.com/jonathanknowles/hs-vhd
-Cabal-version:       >=1.6
+Cabal-version:       >=1.8
 Data-files:          README
-
-Flag test
-  Description:       Build unit tests
-  Default:           False
 
 Flag executable
   Description:       Build executables
@@ -45,23 +41,39 @@ Library
                      Data.Vhd.Types
                      Data.Vhd.Utils
 
-Executable           Tests
-  Main-Is:           Tests.hs
-  if flag(test)
-    Buildable:       True
-    Build-depends:   base >= 3 && < 5
-                   , QuickCheck >= 2
+Test-Suite test-vhd
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    Tests .
+  main-is:           Tests.hs
+  build-depends:     base
                    , bytestring
-                   , test-framework >= 0.3
-                   , test-framework-quickcheck2 >= 0.2
-  else
-    Buildable:       False
+                   , test-framework >= 0.3.3
+                   , test-framework-quickcheck2
+                   , QuickCheck >= 2.4.0.1
+                   , bytestring
+                   , filepath
+                   , mmap
+                   , text
+                   , time
+                   , cereal
+                   , random
+                   , vhd
 
 Executable           vhd
   Main-Is:           Vhd.hs
+  hs-source-dirs:    Tools .
   if flag(executable)
     Buildable:       True
     Build-depends:   base >= 3 && < 5
+                   , bytestring
+                   , filepath
+                   , mmap
+                   , text
+                   , time
+                   , cereal
+                   , random
+                   , storable-endian
+                   , vhd
   else
     Buildable:       False
 
