@@ -29,6 +29,7 @@ Library
                    , random
                    , storable-endian
   Exposed-modules:   Data.Vhd
+                     Data.Vhd.Lowlevel
   Other-modules:     Data.BitSet
                      Data.Range
                      Data.Vhd.Bat

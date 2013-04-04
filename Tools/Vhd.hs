@@ -1,9 +1,11 @@
+import Control.Applicative
 import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Char
 import Data.IORef
 import Data.Vhd
+import Data.Vhd.Lowlevel
 import Data.Vhd.Bat
 import qualified Data.Vhd.Block as Block
 import Data.Vhd.Checksum
@@ -95,7 +97,11 @@ showChecksum checksum isValid =
 cmdHelp _ = usage Nothing
 
 cmdPropSetUuid args = do
-    return ()
+    let (file,uuid) = case args of
+                        [f, u] -> (f,u)
+                        _      -> error "usage: vhd <set-uuid> <file> <newuuid>"
+    footer <- either error id <$> readFooter file
+    writeFooter file footer
 
 knownCommands =
     [ ("convert", cmdConvert)
