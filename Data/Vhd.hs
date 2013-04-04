@@ -67,7 +67,7 @@ withVhd = withVhdInner [] where
                     , vhdNodes      = reverse $ node : accumulatedNodes
                     }
         where parentPath node = resolveColocatedFilePath filePath p
-            where ParentUnicodeName p = headerParentUnicodeName $ nodeHeader node
+                where ParentUnicodeName p = headerParentUnicodeName $ nodeHeader node
 
 -- The VHD specification requires an unsigned 32-bit word to encode the
 -- block size of a VHD.

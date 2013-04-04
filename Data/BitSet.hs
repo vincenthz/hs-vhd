@@ -19,8 +19,8 @@ import Prelude hiding (subtract)
 
 data BitSet = BitSet B.ByteString
 
-instance Eq BitSet
-    where (BitSet b1) == (BitSet b2) = b1' == b2'
+instance Eq BitSet where
+    (BitSet b1) == (BitSet b2) = b1' == b2'
         where (b1', b2') = byteStringsPad b1 b2
 
 instance Show BitSet where show = show . toList
