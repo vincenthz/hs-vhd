@@ -10,7 +10,7 @@ License-file:        LICENCE
 Stability:           Experimental
 Category:            System
 Build-type:          Simple
-Homepage:            https://github.com/jonathanknowles/hs-vhd
+Homepage:            https://github.com/vincenthz/hs-vhd
 Cabal-version:       >=1.8
 Data-files:          README
 
@@ -80,4 +80,4 @@ Executable           vhd
 
 source-repository head
   type:     git
-  location: git://github.com/jonathanknowles/hs-vhd
+  location: git://github.com/vincenthz/hs-vhd
