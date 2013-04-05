@@ -97,11 +97,12 @@ showChecksum checksum isValid =
 cmdHelp _ = usage Nothing
 
 cmdPropSetUuid args = do
-    let (file,uuid) = case args of
+    let (file,uuidStr) = case args of
                         [f, u] -> (f,u)
                         _      -> error "usage: vhd <set-uuid> <file> <newuuid>"
+    let uuid = read uuidStr
     footer <- either error id <$> readFooter file
-    writeFooter file footer
+    writeFooter file $ footer { footerUniqueId = uuid }
 
 knownCommands =
     [ ("convert", cmdConvert)
