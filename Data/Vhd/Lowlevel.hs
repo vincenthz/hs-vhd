@@ -47,7 +47,7 @@ readHeader filepath = withFile filepath ReadMode $ \handle -> do
 -- | re-write both footer in a VHD file
 writeFooter :: FilePath -> Footer -> IO ()
 writeFooter filePath footer = do
-    withFile filePath WriteMode $ \handle -> do
+    withFile filePath ReadWriteMode $ \handle -> do
         a <- hTell handle
         when (a /= 0) $  error "aaa"
         B.hPut handle footerBs
@@ -59,7 +59,7 @@ writeFooter filePath footer = do
 -- | re-write an header in a VHD file
 writeHeader :: FilePath -> Header -> IO ()
 writeHeader filePath header = do
-    withFile filePath WriteMode $ \handle -> do
+    withFile filePath ReadWriteMode $ \handle -> do
         hSeek handle AbsoluteSeek 512
         B.hPut handle headerBs
   where
