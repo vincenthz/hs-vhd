@@ -48,8 +48,6 @@ readHeader filepath = withFile filepath ReadMode $ \handle -> do
 writeFooter :: FilePath -> Footer -> IO ()
 writeFooter filePath footer = do
     withFile filePath ReadWriteMode $ \handle -> do
-        a <- hTell handle
-        when (a /= 0) $  error "aaa"
         B.hPut handle footerBs
         hSeek handle SeekFromEnd 512
         B.hPut handle footerBs
