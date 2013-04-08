@@ -103,7 +103,7 @@ showBlockSize i
 showChecksum checksum isValid =
     printf "%08x (%s)" checksum (if isValid then "valid" else "invalid")
 
-showTimestamp timestamp@(TimeStamp r) =
+showTimestamp timestamp@(VhdDiffTime r) =
     let utc = toUTCTime timestamp
      in show r ++ "s since VHD epoch (" ++ show utc ++ ")"
 

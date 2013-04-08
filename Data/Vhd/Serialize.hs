@@ -123,8 +123,8 @@ putTableOffset     = putWord64be
 getParentTimeStamp = getTimeStamp
 putParentTimeStamp = putTimeStamp
 
-getTimeStamp                = TimeStamp <$> getWord32be
-putTimeStamp (TimeStamp ts) = putWord32be ts
+getTimeStamp                  = VhdDiffTime <$> getWord32be
+putTimeStamp (VhdDiffTime ts) = putWord32be ts
 
 getCreatorApplication = creatorApplication <$> getByteString 4
 putCreatorApplication (CreatorApplication c) = putByteString c

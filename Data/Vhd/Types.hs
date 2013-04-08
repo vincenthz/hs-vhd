@@ -21,7 +21,7 @@ data Header = Header
     , headerBlockSize            :: BlockByteCount
     , headerChecksum             :: Checksum
     , headerParentUniqueId       :: UniqueId
-    , headerParentTimeStamp      :: TimeStamp
+    , headerParentTimeStamp      :: VhdDiffTime
     , headerReserved1            :: B.ByteString
     , headerParentUnicodeName    :: ParentUnicodeName
     , headerParentLocatorEntries :: ParentLocatorEntries
@@ -32,7 +32,7 @@ data Footer = Footer
     , footerIsTemporaryDisk    :: Bool
     , footerFormatVersion      :: Version
     , footerDataOffset         :: PhysicalByteAddress
-    , footerTimeStamp          :: TimeStamp
+    , footerTimeStamp          :: VhdDiffTime
     , footerCreatorApplication :: CreatorApplication
     , footerCreatorVersion     :: Version
     , footerCreatorHostOs      :: CreatorHostOs

@@ -41,8 +41,8 @@ instance Arbitrary DiskType where
 instance Arbitrary CreatorHostOs where
     arbitrary = elements [ CreatorHostOsUnknown, CreatorHostOsWindows, CreatorHostOsMacintosh ]
 
-instance Arbitrary TimeStamp where
-    arbitrary = TimeStamp <$> arbitrary
+instance Arbitrary VhdDiffTime where
+    arbitrary = VhdDiffTime <$> arbitrary
 
 instance Arbitrary Header where
     arbitrary = Header

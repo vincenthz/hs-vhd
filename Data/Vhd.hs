@@ -99,10 +99,10 @@ validateBlockSize value =
 data CreateParameters = CreateParameters
     { createBlockSize         :: BlockByteCount
     , createDiskType          :: DiskType
-    , createParentTimeStamp   :: Maybe TimeStamp
+    , createParentTimeStamp   :: Maybe VhdDiffTime
     , createParentUnicodeName :: Maybe ParentUnicodeName
     , createParentUniqueId    :: Maybe UniqueId
-    , createTimeStamp         :: Maybe TimeStamp
+    , createTimeStamp         :: Maybe VhdDiffTime
     , createUuid              :: Maybe UniqueId
     , createUseBatmap         :: Bool
     , createVirtualSize       :: VirtualByteCount
@@ -205,7 +205,7 @@ create' filePath createParams =
             , headerBlockSize            = createBlockSize createParams
             , headerChecksum             = 0
             , headerParentUniqueId       = fromMaybe (uniqueId $ B.replicate 16 0) (createParentUniqueId createParams)
-            , headerParentTimeStamp      = fromMaybe (TimeStamp 0) (createParentTimeStamp createParams)
+            , headerParentTimeStamp      = fromMaybe (VhdDiffTime 0) (createParentTimeStamp createParams)
             , headerReserved1            = B.replicate 4 0
             , headerParentUnicodeName    = fromMaybe (parentUnicodeName "") (createParentUnicodeName createParams)
             , headerParentLocatorEntries = ParentLocatorEntries $ replicate 8 nullParentLocatorEntry

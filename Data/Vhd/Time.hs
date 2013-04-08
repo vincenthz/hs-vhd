@@ -1,5 +1,5 @@
 module Data.Vhd.Time
-    ( TimeStamp(..)
+    ( VhdDiffTime(..)
     , getVHDTime
     , toPosixSeconds
     , toUTCTime
@@ -11,20 +11,20 @@ import Data.Time.Clock.POSIX
 import Data.Time.Clock
 
 -- | Represent number of seconds since VHD epoch.
-newtype TimeStamp = TimeStamp Word32
+newtype VhdDiffTime = VhdDiffTime Word32
     deriving (Show,Read,Eq,Ord)
 
 y2k :: Word64
 y2k = 946684800 -- seconds from the unix epoch to the vhd epoch 
 
 -- | return the current time in vhd epoch time.
-getVHDTime :: IO TimeStamp
+getVHDTime :: IO VhdDiffTime
 getVHDTime = do
     nowUnixEpoch <- fromIntegral . fromEnum <$> getPOSIXTime
-    return $ TimeStamp $ fromIntegral (nowUnixEpoch - y2k)
+    return $ VhdDiffTime $ fromIntegral (nowUnixEpoch - y2k)
 
-toPosixSeconds :: TimeStamp -> POSIXTime
-toPosixSeconds (TimeStamp ts) = fromIntegral (fromIntegral ts + y2k)
+toPosixSeconds :: VhdDiffTime -> POSIXTime
+toPosixSeconds (VhdDiffTime ts) = fromIntegral (fromIntegral ts + y2k)
 
-toUTCTime :: TimeStamp -> UTCTime
+toUTCTime :: VhdDiffTime -> UTCTime
 toUTCTime = posixSecondsToUTCTime . toPosixSeconds 
