@@ -208,7 +208,7 @@ create' filePath createParams =
             , headerParentTimeStamp      = fromMaybe 0 (createParentTimeStamp createParams)
             , headerReserved1            = B.replicate 4 0
             , headerParentUnicodeName    = fromMaybe (parentUnicodeName "") (createParentUnicodeName createParams)
-            , headerParentLocatorEntries = parentLocatorEntries $ replicate 8 (ParentLocatorEntry $ B.replicate 24 0)
+            , headerParentLocatorEntries = ParentLocatorEntries $ replicate 8 nullParentLocatorEntry
             }
 
 snapshot :: Vhd -> FilePath -> IO ()

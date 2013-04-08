@@ -23,7 +23,7 @@ instance Arbitrary CreatorApplication where
     arbitrary = creatorApplication . B.pack <$> replicateM 4 arbitrary
 
 instance Arbitrary ParentLocatorEntry where
-    arbitrary = parentLocatorEntry . B.pack <$> replicateM 24 arbitrary
+    arbitrary = ParentLocatorEntry <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary ParentLocatorEntries where
     arbitrary = parentLocatorEntries <$> replicateM 8 arbitrary

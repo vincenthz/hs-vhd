@@ -93,7 +93,15 @@ data DiskType
 
 newtype Cookie               = Cookie             B.ByteString deriving (Show, Eq)
 newtype CreatorApplication   = CreatorApplication B.ByteString deriving (Show, Eq)
-newtype ParentLocatorEntry   = ParentLocatorEntry B.ByteString deriving (Show, Eq)
+data ParentLocatorEntry = ParentLocatorEntry
+    { locatorCode  :: Word32
+    , locatorDataSpace  :: Word32
+    , locatorDataLength :: Word32
+    , locatorDataOffset :: Word64
+    } deriving (Show, Eq)
+
+nullParentLocatorEntry = ParentLocatorEntry 0 0 0 0
+
 newtype ParentUnicodeName    = ParentUnicodeName  String       deriving (Show, Eq)
 newtype UniqueId             = UniqueId           B.ByteString deriving (Eq)
 
@@ -128,7 +136,6 @@ newtype ParentLocatorEntries = ParentLocatorEntries [ParentLocatorEntry] derivin
 cookie               c = assert (B.length c ==   8) $ Cookie               c
 creatorApplication   a = assert (B.length a ==   4) $ CreatorApplication   a
 parentLocatorEntries e = assert (  length e ==   8) $ ParentLocatorEntries e
-parentLocatorEntry   e = assert (B.length e ==  24) $ ParentLocatorEntry   e
 uniqueId             i = assert (B.length i ==  16) $ UniqueId             i
 
 parentUnicodeName n

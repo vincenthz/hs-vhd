@@ -26,7 +26,7 @@ instance Serialize Header where
         <*> getParentTimeStamp
         <*> getByteString 4
         <*> getParentUnicodeName
-        <*> getParentLocatorEntries
+        <*> get
         <*  getHeaderPadding
     put h = do
         putCookie               $ headerCookie               h
@@ -40,7 +40,7 @@ instance Serialize Header where
         putParentTimeStamp      $ headerParentTimeStamp      h
         putByteString           $ headerReserved1            h
         putParentUnicodeName    $ headerParentUnicodeName    h
-        putParentLocatorEntries $ headerParentLocatorEntries h
+        put $ headerParentLocatorEntries h
         putHeaderPadding
 
 instance Serialize Footer where
@@ -177,8 +177,14 @@ putParentUnicodeName (ParentUnicodeName c)
         b    = encodeUtf16BE $ T.pack c
         blen = B.length b
 
-getParentLocatorEntry = parentLocatorEntry <$> getByteString 24
-putParentLocatorEntry (ParentLocatorEntry e) = putByteString e
+instance Serialize ParentLocatorEntry where
+    get = ParentLocatorEntry <$> getWord32be
+                             <*> getWord32be
+                             <*> getWord32be
+                             <*> (getWord32be *> getWord64be)
+    put ent = mapM_ putWord32be [locatorCode ent,locatorDataSpace ent,locatorDataLength ent,0]
+           >> putWord64be (locatorDataOffset ent)
 
-getParentLocatorEntries = parentLocatorEntries <$> replicateM 8 getParentLocatorEntry
-putParentLocatorEntries (ParentLocatorEntries es) = mapM_ putParentLocatorEntry es
+instance Serialize ParentLocatorEntries where
+    get = ParentLocatorEntries <$> replicateM 8 get
+    put (ParentLocatorEntries es) = mapM_ put es
