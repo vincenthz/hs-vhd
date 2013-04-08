@@ -32,6 +32,7 @@ import Data.Vhd.Geometry
 import Data.Vhd.Node
 import Data.Vhd.Types
 import Data.Vhd.Utils
+import Data.Vhd.Time
 import Data.Word
 import Foreign.C.String
 import Foreign.C.Types
@@ -134,8 +135,7 @@ create :: FilePath -> CreateParameters -> IO ()
 create filePath createParams
     | createVirtualSize createParams == 0 = error "cannot create a 0-sized VHD"
     | otherwise                           = do
-        nowUnixEpoch <- fromIntegral . fromEnum <$> getPOSIXTime
-        let nowVhdEpoch = fromIntegral (nowUnixEpoch - y2k)
+        nowVhdEpoch <- getVHDTime
         uniqueid <- randomUniqueId
         create' filePath $ createParams
             { createTimeStamp = Just $ maybe nowVhdEpoch id $ createTimeStamp createParams
@@ -205,7 +205,7 @@ create' filePath createParams =
             , headerBlockSize            = createBlockSize createParams
             , headerChecksum             = 0
             , headerParentUniqueId       = fromMaybe (uniqueId $ B.replicate 16 0) (createParentUniqueId createParams)
-            , headerParentTimeStamp      = fromMaybe 0 (createParentTimeStamp createParams)
+            , headerParentTimeStamp      = fromMaybe (TimeStamp 0) (createParentTimeStamp createParams)
             , headerReserved1            = B.replicate 4 0
             , headerParentUnicodeName    = fromMaybe (parentUnicodeName "") (createParentUnicodeName createParams)
             , headerParentLocatorEntries = ParentLocatorEntries $ replicate 8 nullParentLocatorEntry
@@ -335,4 +335,3 @@ unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount result
             sourceByteOffset = sectorLength * (sectorToCopy               )
             targetByteOffset = sectorLength * (sectorToCopy - sectorOffset)
             target = plusPtr resultPtr $ fromIntegral $ targetByteOffset
-

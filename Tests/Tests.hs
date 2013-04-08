@@ -9,6 +9,7 @@ import qualified Data.ByteString as B
 import Data.Serialize
 import Data.Vhd.Types
 import Data.Vhd.Serialize
+import Data.Vhd.Time
 
 instance Arbitrary Version where
     arbitrary = Version <$> arbitrary <*> arbitrary
@@ -39,6 +40,9 @@ instance Arbitrary DiskType where
 
 instance Arbitrary CreatorHostOs where
     arbitrary = elements [ CreatorHostOsUnknown, CreatorHostOsWindows, CreatorHostOsMacintosh ]
+
+instance Arbitrary TimeStamp where
+    arbitrary = TimeStamp <$> arbitrary
 
 instance Arbitrary Header where
     arbitrary = Header

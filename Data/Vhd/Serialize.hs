@@ -12,6 +12,7 @@ import Data.Serialize.Put
 import qualified Data.Text as T
 import Data.Text.Encoding
 import Data.Vhd.Types
+import Data.Vhd.Time
 
 instance Serialize Header where
     get = Header
@@ -116,12 +117,14 @@ getMaxTableEntries = getWord32be
 putMaxTableEntries = putWord32be
 getOriginalSize    = getWord64be
 putOriginalSize    = putWord64be
-getParentTimeStamp = getWord32be
-putParentTimeStamp = putWord32be
 getTableOffset     = getWord64be
 putTableOffset     = putWord64be
-getTimeStamp       = getWord32be
-putTimeStamp       = putWord32be
+
+getParentTimeStamp = getTimeStamp
+putParentTimeStamp = putTimeStamp
+
+getTimeStamp                = TimeStamp <$> getWord32be
+putTimeStamp (TimeStamp ts) = putWord32be ts
 
 getCreatorApplication = creatorApplication <$> getByteString 4
 putCreatorApplication (CreatorApplication c) = putByteString c

@@ -6,6 +6,7 @@ import Data.Char
 import qualified Data.ByteString as B
 import Data.List
 import qualified Data.Text as T
+import Data.Vhd.Time
 import Data.Text.Encoding
 import Data.Word
 import System.Random
@@ -64,7 +65,6 @@ type PhysicalByteAddress         = Word64
 type PhysicalByteCount           = Word64
 type PhysicalSectorAddress       = Word32
 type PhysicalSectorCount         = Word32
-type TimeStamp                   = Word32
 type VirtualBlockAddress         = Word32
 type VirtualBlockCount           = Word32
 type VirtualByteAddress          = Word64

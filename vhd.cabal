@@ -30,6 +30,7 @@ Library
                    , storable-endian
   Exposed-modules:   Data.Vhd
                      Data.Vhd.Lowlevel
+                     Data.Vhd.Time
   Other-modules:     Data.BitSet
                      Data.Range
                      Data.Vhd.Bat

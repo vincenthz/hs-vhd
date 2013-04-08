@@ -11,9 +11,11 @@ import qualified Data.Vhd.Block as Block
 import Data.Vhd.Checksum
 import Data.Vhd.Node
 import Data.Vhd.Types
+import Data.Vhd.Time
 import System.Environment (getArgs)
 import System.IO
 import Text.Printf
+import Data.Word
 
 cmdConvert [fileRaw, fileVhd, size] = convert =<< rawSizeBytes where
     vhdSizeMiB   = read size
@@ -63,7 +65,7 @@ cmdRead [file] = withVhdNode file $ \node -> do
         , ("header-checksum  ", showChecksum (headerChecksum hdr) (verifyHeaderChecksum hdr))
         , ("parent-uuid      ", show $ headerParentUniqueId hdr)
         , ("parent-filepath  ", show $ headerParentUnicodeName hdr)
-        , ("parent-timestamp ", show $ headerParentTimeStamp hdr)
+        , ("parent-timestamp ", showTimestamp $ headerParentTimeStamp hdr)
         ]
     let (ParentLocatorEntries ents) = headerParentLocatorEntries hdr
     putStrLn "locators:"
@@ -79,7 +81,7 @@ cmdRead [file] = withVhdNode file $ \node -> do
         , ("type             ", show $ footerDiskType ftr)
         , ("footer-checksum  ", showChecksum (footerChecksum ftr) (verifyFooterChecksum ftr))
         , ("uuid             ", show $ footerUniqueId ftr)
-        , ("timestamp        ", show $ footerTimeStamp ftr)
+        , ("timestamp        ", showTimestamp $ footerTimeStamp ftr)
         ]
     allocated <- newIORef 0
     batIterate (nodeBat node) (fromIntegral $ headerMaxTableEntries hdr) $ \i n -> do
@@ -100,6 +102,10 @@ showBlockSize i
 
 showChecksum checksum isValid =
     printf "%08x (%s)" checksum (if isValid then "valid" else "invalid")
+
+showTimestamp timestamp@(TimeStamp r) =
+    let utc = toUTCTime timestamp
+     in show r ++ "s since VHD epoch (" ++ show utc ++ ")"
 
 cmdHelp _ = usage Nothing
 
