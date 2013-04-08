@@ -20,7 +20,7 @@ y2k = 946684800 -- seconds from the unix epoch to the vhd epoch
 -- | return the current time in vhd epoch time.
 getVHDTime :: IO VhdDiffTime
 getVHDTime = do
-    nowUnixEpoch <- fromIntegral . fromEnum <$> getPOSIXTime
+    nowUnixEpoch <- truncate <$> getPOSIXTime
     return $ VhdDiffTime $ fromIntegral (nowUnixEpoch - y2k)
 
 toPosixSeconds :: VhdDiffTime -> POSIXTime
