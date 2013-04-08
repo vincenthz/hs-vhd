@@ -65,6 +65,13 @@ cmdRead [file] = withVhdNode file $ \node -> do
         , ("parent-filepath  ", show $ headerParentUnicodeName hdr)
         , ("parent-timestamp ", show $ headerParentTimeStamp hdr)
         ]
+    let (ParentLocatorEntries ents) = headerParentLocatorEntries hdr
+    putStrLn "locators:"
+    forM_ (zip ents [0..]) $ \(ent,i) -> do
+        printf "  %d: code=%.8x space=%.8x len=%.8x offset=%.16x\n"
+                (i :: Int) (locatorCode ent) (locatorDataSpace ent) (locatorDataSpace ent) (locatorDataOffset ent)
+        return ()
+
     mapM_ (\(f, s) -> putStrLn (f ++ " : " ++ s))
         [ ("disk-geometry    ", show $ footerDiskGeometry ftr)
         , ("original-size    ", showBlockSize $ footerOriginalSize ftr)
