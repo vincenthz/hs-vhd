@@ -62,14 +62,14 @@ withBlock :: FilePath -> BlockByteCount -> PhysicalSectorAddress -> (Block -> IO
 withBlock file blockSize sectorOffset f =
         mmapWithFilePtr file ReadWrite (Just (offset, length)) $ \(ptr, sz) ->
             f (Block blockSize $ castPtr ptr)
-    where
+  where
         offset = (fromIntegral sectorOffset) * (fromIntegral sectorLength)
         length = (fromIntegral blockSize) + (fromIntegral $ bitmapSizeOfBlockSize blockSize)
 
 -- | Reads into memory the contents of the bitmap for the specified block.
 readBitmap :: Block -> IO ByteString
-readBitmap block =
-    B.create (fromIntegral length) create where
+readBitmap block = B.create (fromIntegral length) create
+  where
         length = bitmapSizeOfBlock block
         create byteStringPtr = B.memcpy target source (fromIntegral length) where
             source = case bitmapOfBlock block of Bitmap b -> b
@@ -104,7 +104,7 @@ writeDataRange block offset content = do
     -- at the moment assumption is it's 0ed
     bitmapSetRange bitmap (fromIntegral sectorStart) (fromIntegral sectorEnd)
     B.unsafeUseAsCString content (\source -> B.memcpy target (castPtr source) length)
-    where
+  where
         length      = fromIntegral $ B.length content
         bitmap      = bitmapOfBlock block
         target      = (pointerOfData $ dataOfBlock block) `plusPtr` (fromIntegral offset)

@@ -85,7 +85,7 @@ appendEmptyBlock node n = do
     B.hPut (nodeHandle node) (B.replicate fullSize 0)
     hAlign (nodeHandle node) (fromIntegral sectorLength)
     B.hPut (nodeHandle node) $ encode (nodeFooter node)
-    where
+  where
         fullSize   = bitmapSize + fromIntegral blockSize
         bitmapSize = bitmapSizeOfBlockSize blockSize
         blockSize  = headerBlockSize $ nodeHeader node

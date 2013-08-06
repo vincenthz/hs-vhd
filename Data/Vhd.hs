@@ -16,7 +16,7 @@ module Data.Vhd
 
 import Control.Applicative
 import Control.Monad
-import Data.BitSet
+import Data.BitSet as BitSet
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Internal as B
@@ -51,7 +51,8 @@ virtualSize :: Vhd -> VirtualByteCount
 virtualSize vhd = fromIntegral (vhdBlockCount vhd) * fromIntegral (vhdBlockSize vhd)
 
 withVhd :: FilePath -> (Vhd -> IO a) -> IO a
-withVhd = withVhdInner [] where
+withVhd = withVhdInner []
+  where
 
     blockCount node = headerMaxTableEntries $ nodeHeader node
     blockSize  node = headerBlockSize       $ nodeHeader node
@@ -224,11 +225,10 @@ snapshot parentVhd childFilePath = do
         , createUseBatmap         = hasBitmap headNodeBat
         , createVirtualSize       = virtualSize parentVhd
         }
-        where
-            headNode         = head $ vhdNodes parentVhd
-            headNodeBat      = nodeBat      headNode
-            headNodeFooter   = nodeFooter   headNode
-            parentFilePath   = makeRelative (takeDirectory childFilePath) (nodeFilePath headNode)
+  where headNode         = head $ vhdNodes parentVhd
+        headNodeBat      = nodeBat      headNode
+        headNodeFooter   = nodeFooter   headNode
+        parentFilePath   = makeRelative (takeDirectory childFilePath) (nodeFilePath headNode)
 
 -- | Reads data from the whole virtual address space of the given VHD.
 readData :: Vhd -> IO BL.ByteString
@@ -299,21 +299,20 @@ unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount result
         B.memset resultPtr 0 $ fromIntegral $ sectorCount * sectorLength
         copySectorsFromNodes sectorsToRead =<< nodeOffsets
 
-    sectorsToRead = fromRange lo hi where
-        lo = fromIntegral $ sectorOffset
-        hi = fromIntegral $ sectorOffset + sectorCount
+    sectorsToRead = fromRange lo hi
+      where lo = fromIntegral $ sectorOffset
+            hi = fromIntegral $ sectorOffset + sectorCount
 
     nodeOffsets :: IO [(VhdNode, PhysicalSectorAddress)]
-    nodeOffsets = fmap catMaybes $ mapM maybeNodeOffset $ vhdNodes vhd where
-        maybeNodeOffset node = (fmap . fmap) (node, ) $
-            lookupBlock (nodeBat node) virtualBlockAddress
+    nodeOffsets = fmap catMaybes $ mapM maybeNodeOffset $ vhdNodes vhd
+      where maybeNodeOffset node = (fmap . fmap) (node, ) $ lookupBlock (nodeBat node) virtualBlockAddress
 
     copySectorsFromNodes :: BitSet -> [(VhdNode, PhysicalSectorAddress)] -> IO ()
     copySectorsFromNodes sectorsRequested [] = return ()
-    copySectorsFromNodes sectorsRequested (nodeOffset : tail) =
-        if Data.BitSet.isEmpty sectorsRequested then return () else do
-        sectorsMissing <- copySectorsFromNode sectorsRequested nodeOffset
-        copySectorsFromNodes sectorsMissing tail
+    copySectorsFromNodes sectorsRequested (nodeOffset : tail)
+        | BitSet.isEmpty sectorsRequested = return ()
+        | otherwise = do sectorsMissing <- copySectorsFromNode sectorsRequested nodeOffset
+                         copySectorsFromNodes sectorsMissing tail
 
     copySectorsFromNode :: BitSet -> (VhdNode, PhysicalSectorAddress) -> IO BitSet
     copySectorsFromNode sectorsRequested (node, physicalSectorOfBlock) =
@@ -324,8 +323,8 @@ unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount result
     copySectorsFromNodeBlock sectorsRequested block = do
         sectorsPresentByteString <- Block.readBitmap block
         let sectorsPresent = fromByteString sectorsPresentByteString
-        let sectorsMissing = sectorsRequested `subtract`  sectorsPresent
-        let sectorsToCopy  = sectorsRequested `intersect` sectorsPresent
+            sectorsMissing = sectorsRequested `subtract`  sectorsPresent
+            sectorsToCopy  = sectorsRequested `intersect` sectorsPresent
         mapM_ (copySectorFromNodeBlock block) (map fromIntegral $ toList sectorsToCopy)
         return sectorsMissing
 
