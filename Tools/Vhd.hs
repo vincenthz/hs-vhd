@@ -13,11 +13,12 @@ import Data.Vhd.Node
 import Data.Vhd.Types
 import Data.Vhd.Time
 import System.Environment (getArgs)
+import System.Console.GetOpt
 import System.IO
 import Text.Printf
 import Data.Word
 
-cmdConvert [fileRaw, fileVhd, size] = convert =<< rawSizeBytes where
+cmdConvert _ [fileRaw, fileVhd, size] = convert =<< rawSizeBytes where
     vhdSizeMiB   = read size
     vhdSizeBytes = vhdSizeMiB * 1024 * 1024
     rawSizeBytes = fmap fromIntegral $ withFile fileRaw ReadMode hFileSize
@@ -30,18 +31,18 @@ cmdConvert [fileRaw, fileVhd, size] = convert =<< rawSizeBytes where
             create fileVhd $ defaultCreateParameters
                 { createVirtualSize = vhdSizeBytes }
             withVhd fileVhd $ \vhd -> BL.readFile fileRaw >>= writeDataRange vhd 0
-cmdConvert _ = error "usage: convert <raw file> <vhd file> <size MiB>"
+cmdConvert _ _ = error "usage: convert <raw file> <vhd file> <size MiB>"
 
-cmdCreate [name, size] =
+cmdCreate _ [name, size] =
     create name $ defaultCreateParameters
         { createVirtualSize = read size * 1024 * 1024 }
-cmdCreate _ = error "usage: create <name> <size MiB>"
+cmdCreate _ _ = error "usage: create <name> <size MiB>"
 
-cmdExtract [fileVhd, fileRaw] = withVhd fileVhd $ readData >=> BL.writeFile fileRaw
-cmdExtract _                  = error "usage: extract <vhd file> <raw file>"
+cmdExtract _ [fileVhd, fileRaw] = withVhd fileVhd $ readData >=> BL.writeFile fileRaw
+cmdExtract _ _                  = error "usage: extract <vhd file> <raw file>"
 
-cmdPropGet [file, key] = withVhdNode file $ \node -> do
-    case map toLower key of
+cmdPropGet _ [file, field] = withVhdNode file $ \node -> do
+    case map toLower field of
         "max-table-entries"   -> putStrLn $ show $ headerMaxTableEntries   $ nodeHeader node
         "blocksize"           -> putStrLn $ show $ headerBlockSize         $ nodeHeader node
         "disk-type"           -> putStrLn $ show $ footerDiskType          $ nodeFooter node
@@ -51,10 +52,10 @@ cmdPropGet [file, key] = withVhdNode file $ \node -> do
         "parent-timestamp"    -> putStrLn $ show $ headerParentTimeStamp   $ nodeHeader node
         "parent-filepath"     -> putStrLn $ show $ headerParentUnicodeName $ nodeHeader node
         "timestamp"           -> putStrLn $ show $ footerTimeStamp         $ nodeFooter node
-        _                     -> error "unknown key"
-cmdPropGet _ = error "usage: prop-get <file> <key>"
+        _                     -> error "unknown field"
+cmdPropGet _ _ = error "usage: prop-get <file> <field>"
 
-cmdRead [file] = withVhdNode file $ \node -> do
+cmdRead _ [file] = withVhdNode file $ \node -> do
     let hdr = nodeHeader node
     let ftr = nodeFooter node
     mapM_ (\(f, s) -> putStrLn (f ++ " : " ++ s))
@@ -88,11 +89,11 @@ cmdRead [file] = withVhdNode file $ \node -> do
         unless (n == 0xffffffff) $ modifyIORef allocated ((+) 1) >> printf "BAT[%.5x] = %08x\n" i n
     nb <- readIORef allocated
     putStrLn ("blocks allocated  : " ++ show nb ++ "/" ++ show (headerMaxTableEntries hdr))
-cmdRead _ = error "usage: read <file>"
+cmdRead _ _ = error "usage: read <file>"
 
-cmdSnapshot [fileVhdParent, fileVhdChild] =
+cmdSnapshot _ [fileVhdParent, fileVhdChild] =
     withVhd fileVhdParent $ \vhdParent -> snapshot vhdParent fileVhdChild
-cmdSnapshot _ = error "usage: snapshot <parent vhd file> <child vhd file>"
+cmdSnapshot _ _ = error "usage: snapshot <parent vhd file> <child vhd file>"
 
 showBlockSize i
     | i < 1024     = printf "%d bytes" i
@@ -107,9 +108,9 @@ showTimestamp timestamp@(VhdDiffTime r) =
     let utc = toUTCTime timestamp
      in show r ++ "s since VHD epoch (" ++ show utc ++ ")"
 
-cmdHelp _ = usage Nothing
+cmdHelp _ _ = usage Nothing
 
-cmdPropSetUuid args = do
+cmdPropSetUuid _ args = do
     let (file,uuidStr) = case args of
                         [f, u] -> (f,u)
                         _      -> error "usage: vhd <set-uuid> <file> <newuuid>"
@@ -117,16 +118,28 @@ cmdPropSetUuid args = do
     footer <- either error id <$> readFooter file
     writeFooter file $ footer { footerUniqueId = uuid }
 
+data OptFlag =
+      Help
+    deriving (Show,Eq)
+
+knownCommands :: [ (String, [String] -> IO ()) ]
 knownCommands =
-    [ ("convert", cmdConvert)
-    , ("create",  cmdCreate)
-    , ("extract", cmdExtract)
-    , ("prop-get",cmdPropGet)
-    , ("set-uuid",cmdPropSetUuid)
-    , ("read"    ,cmdRead)
-    , ("snapshot",cmdSnapshot)
-    , ("help"    ,cmdHelp)
+    [ ("convert",  wrapOpt cmdConvert [helpOpt])
+    , ("dump",     wrapOpt cmdDump [helpOpt])
+    , ("create",   wrapOpt cmdCreate [helpOpt])
+    , ("extract",  wrapOpt cmdExtract [helpOpt])
+    , ("prop-get", wrapOpt cmdPropGet [helpOpt])
+    , ("set-uuid", wrapOpt cmdPropSetUuid [helpOpt])
+    , ("read"    , wrapOpt cmdRead [helpOpt])
+    , ("snapshot", wrapOpt cmdSnapshot [helpOpt])
+    , ("help"    , wrapOpt cmdHelp [])
     ]
+  where wrapOpt f opts xs =
+            case getOpt Permute opts xs of
+                (o,n,[])   | Help `elem` o -> usage Nothing
+                           | otherwise     -> f o n
+                (_,_,errs)                 -> mapM_ putStrLn errs >> putStrLn (usageInfo "" opts)
+        helpOpt = Option ['h'] ["help"] (NoArg Help) "ask for help"
 
 usage msg = do
     maybe (return ()) putStrLn msg
