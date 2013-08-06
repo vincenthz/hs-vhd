@@ -21,6 +21,7 @@ import Data.Vhd.Serialize
 import System.Directory
 import System.IO
 
+-- | Represent one VHD file, possibly part of a VHD chain
 data VhdNode = VhdNode
     { nodeBat      :: Bat.Bat
     , nodeHeader   :: Header
