@@ -53,8 +53,10 @@ data BatmapHeader = BatmapHeader
     , batmapHeaderChecksum     :: Checksum
     } deriving (Show, Eq)
 
+-- | The offset from the beggining of a block in bytes
 type BlockByteAddress            = Word32
 type BlockByteCount              = Word32
+-- | The offset from the beggining of a block in sectors
 type BlockSectorAddress          = Word32
 type BlockSectorCount            = Word32
 type DiskGeometryCylinders       = Word16
@@ -65,6 +67,7 @@ type PhysicalByteAddress         = Word64
 type PhysicalByteCount           = Word64
 type PhysicalSectorAddress       = Word32
 type PhysicalSectorCount         = Word32
+-- | The absolute number of the block
 type VirtualBlockAddress         = Word32
 type VirtualBlockCount           = Word32
 type VirtualByteAddress          = Word64
