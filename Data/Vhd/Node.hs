@@ -18,6 +18,7 @@ import qualified Data.Vhd.Bat as Bat
 import Data.Vhd.Types
 import Data.Vhd.Utils
 import Data.Vhd.Serialize
+import System.Directory
 import System.IO
 
 data VhdNode = VhdNode
@@ -31,6 +32,8 @@ data VhdNode = VhdNode
 
 withVhdNode :: FilePath -> (VhdNode -> IO a) -> IO a
 withVhdNode filePath f = do
+    e   <- doesFileExist filePath
+    unless e $ error "file doesn't exist"
     withFile filePath ReadWriteMode $ \handle -> do
         footer <- either error id . decode <$> B.hGet handle 512
         header <- either error id . decode <$> B.hGet handle 1024
