@@ -27,8 +27,8 @@ import Foreign.Storable
 import System.IO.MMap
 
 data Block = Block BlockByteCount (Ptr Word8)
-data Sector = Sector (Ptr Word8)
-data Data = Data (Ptr Word8)
+newtype Sector = Sector (Ptr Word8)
+newtype Data = Data (Ptr Word8)
 
 sectorLength = 512
 
