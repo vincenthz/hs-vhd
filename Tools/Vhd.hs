@@ -38,8 +38,32 @@ cmdCreate _ [name, size] =
         { createVirtualSize = read size * 1024 * 1024 }
 cmdCreate _ _ = error "usage: create <name> <size MiB>"
 
-cmdExtract _ [fileVhd, fileRaw] = withVhd fileVhd $ readData >=> BL.writeFile fileRaw
-cmdExtract _ _                  = error "usage: extract <vhd file> <raw file>"
+cmdExtract opts [fileVhd, fileRaw] = do
+    case foldl getRange (0,0) opts of
+        (0,0)            -> withVhd fileVhd $ readData >=> BL.writeFile fileRaw
+        (startOffset,sz) -> withVhd fileVhd $ \vhd ->
+                            withFile fileRaw WriteMode $ \dst ->
+                            copyByBlock vhd dst (1024*1024) startOffset sz
+  where getRange (_  ,sz) (Offset s) = (getByteStr s, sz)
+        getRange (off,_ ) (Size s)   = (off, getByteStr s)
+        getRange acc      _          = acc
+        getByteStr s = case span isDigit s of
+            ("", _)      -> error ("expecting a number with optional suffix, got: " ++ s)
+            (n,  suffix) -> let mul = case map toLower suffix of
+                                            "k" -> 1024
+                                            "m" -> 1024 * 1024
+                                            "g" -> 1024 * 1024 * 1024
+                                            ""  -> 1
+                                            _   -> error ("unknown suffix: " ++ suffix ++ " in " ++ s)
+                             in read n * mul
+        -- copy block of chunkSize size
+        copyByBlock vhd dst chunkSize offset sz = loop offset sz
+          where loop off left
+                    | left < chunkSize = readDataRange vhd off left >>= BL.hPut dst
+                    | otherwise      = do
+                        readDataRange vhd off chunkSize >>= BL.hPut dst
+                        loop (off + chunkSize) (left - chunkSize)
+cmdExtract _ _ = error "usage: extract <vhd file> <raw file>"
 
 cmdPropGet _ [file, field] = withVhdNode file $ \node -> do
     case map toLower field of
@@ -120,14 +144,15 @@ cmdPropSetUuid _ args = do
 
 data OptFlag =
       Help
+    | Offset String
+    | Size String
     deriving (Show,Eq)
 
 knownCommands :: [ (String, [String] -> IO ()) ]
 knownCommands =
     [ ("convert",  wrapOpt cmdConvert [helpOpt])
-    , ("dump",     wrapOpt cmdDump [helpOpt])
     , ("create",   wrapOpt cmdCreate [helpOpt])
-    , ("extract",  wrapOpt cmdExtract [helpOpt])
+    , ("extract",  wrapOpt cmdExtract [helpOpt,offsetOpt,sizeOpt])
     , ("prop-get", wrapOpt cmdPropGet [helpOpt])
     , ("set-uuid", wrapOpt cmdPropSetUuid [helpOpt])
     , ("read"    , wrapOpt cmdRead [helpOpt])
@@ -139,7 +164,9 @@ knownCommands =
                 (o,n,[])   | Help `elem` o -> usage Nothing
                            | otherwise     -> f o n
                 (_,_,errs)                 -> mapM_ putStrLn errs >> putStrLn (usageInfo "" opts)
-        helpOpt = Option ['h'] ["help"] (NoArg Help) "ask for help"
+        helpOpt   = Option ['h'] ["help"] (NoArg Help) "ask for help"
+        offsetOpt = Option ['o'] ["offset"] (ReqArg Offset "offset") "change the start offset"
+        sizeOpt   = Option ['z'] ["size"] (ReqArg Size "size") "size in bytes"
 
 usage msg = do
     maybe (return ()) putStrLn msg
