@@ -46,6 +46,7 @@ Library
                      Data.Vhd.Serialize
                      Data.Vhd.Types
                      Data.Vhd.Utils
+                     Data.Vhd.UniqueId
   ghc-options:       -Wall -fwarn-tabs
 
 Test-Suite test-vhd
@@ -54,6 +55,7 @@ Test-Suite test-vhd
   main-is:           Tests.hs
   build-depends:     base
                    , bytestring
+                   , byteable
                    , test-framework >= 0.3.3
                    , test-framework-quickcheck2
                    , QuickCheck >= 2.4.0.1

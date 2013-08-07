@@ -4,6 +4,7 @@ import Control.Applicative
 import Control.Exception
 import Control.Monad
 import Data.Bits
+import Data.Byteable
 import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Serialize
@@ -12,6 +13,7 @@ import Data.Serialize.Put
 import qualified Data.Text as T
 import Data.Text.Encoding
 import Data.Vhd.Types
+import Data.Vhd.UniqueId
 import Data.Vhd.Time
 
 instance Serialize Header where
@@ -157,8 +159,8 @@ putIsTemporaryDisk i = putWord32be ((if i then 1 else 0) .|. 0x2)
 getIsSavedState = (== 1) <$> getWord8
 putIsSavedState i = putWord8 (if i then 1 else 0)
 
-getUniqueId = UniqueId <$> getByteString 16
-putUniqueId (UniqueId i) = putByteString i
+getUniqueId = uniqueId <$> getByteString 16
+putUniqueId uid = putByteString $ toBytes uid
 
 getParentUniqueId = getUniqueId
 putParentUniqueId = putUniqueId

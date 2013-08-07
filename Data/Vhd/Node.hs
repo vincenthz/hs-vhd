@@ -22,9 +22,6 @@ import Data.Vhd.Crypt
 import System.Directory
 import System.IO
 
-paranoidCheck :: Bool
-paranoidCheck = False
-
 -- | Represent one VHD file, possibly part of a VHD chain
 data VhdNode = VhdNode
     { nodeBat      :: Bat.Bat
@@ -86,10 +83,10 @@ appendEmptyBlock node n = do
     -- seek to the end of the file minus the footer
     hSeek (nodeHandle node) SeekFromEnd 512
 
-    when paranoidCheck $ do
-        x <- hTell (nodeHandle node)
-        let (sector, m) = x `divMod` 512
-        unless (m == 0) $ error "wrong sector alignment"
+    pos <- hTell (nodeHandle node)
+    let (sector, m) = pos `divMod` 512
+
+    unless (m == 0) $ error "wrong sector alignment"
 
     Bat.batWrite (nodeBat node) n (fromIntegral sector)
     modifyIORef (nodeModified node) (const True)
