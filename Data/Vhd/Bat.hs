@@ -36,7 +36,7 @@ hasBitmap (Bat _ _ (Nothing)) = False
 hasBitmap (Bat _ _ (Just bm)) = True
 
 batmapSet :: VirtualBlockAddress -> Batmap -> IO ()
-batmapSet n (Batmap bitmap _) = bitmapSet bitmap (fromIntegral n)
+batmapSet (VirtualBlockAddress n) (Batmap bitmap _) = bitmapSet bitmap (fromIntegral n)
 
 batmapChecksum :: Batmap -> IO Checksum
 batmapChecksum (Batmap (Bitmap p) sz) = complement `fmap` foldM addByte 0 [0 .. (sz - 1)]
@@ -65,14 +65,15 @@ lookupBlock b n =
 --   address. The value returned is valid if (and only if) the specified BAT
 --   contains an entry for that block.
 unsafeLookupBlock :: Bat -> VirtualBlockAddress -> IO PhysicalSectorAddress
-unsafeLookupBlock (Bat bptr _ _) n = peekBE ptr
+unsafeLookupBlock (Bat bptr _ _) (VirtualBlockAddress n) = peekBE ptr
     where ptr = bptr `plusPtr` ((fromIntegral n) * 4)
 
 -- | Sets the physical sector address for the block at the given virtual
 --   address, in the specified BAT.
 batWrite :: Bat -> VirtualBlockAddress -> PhysicalSectorAddress -> IO ()
-batWrite (Bat bptr _ bmap) n v = pokeBE ptr v >> maybe (return ()) (batmapSet n) bmap
-    where ptr = bptr `plusPtr` ((fromIntegral n) * 4)
+batWrite (Bat bptr _ bmap) vba@(VirtualBlockAddress n) v =
+    pokeBE ptr v >> maybe (return ()) (batmapSet vba) bmap
+  where ptr = bptr `plusPtr` ((fromIntegral n) * 4)
 
 batMmap :: FilePath -> Header -> Footer -> Maybe BatmapHeader -> (Bat -> IO a) -> IO a
 batMmap file header footer batmapHeader f =
@@ -80,7 +81,7 @@ batMmap file header footer batmapHeader f =
         let batmap    = Batmap (Bitmap (castPtr (ptr `plusPtr` batmapOffset))) batmapSize in
         let batendPtr = ptr `plusPtr` batSize in
         f . Bat (castPtr ptr) batendPtr $ fmap (const batmap) batmapHeader
-    where
+  where
         absoluteOffset = fromIntegral (headerTableOffset header)
         offsetSize     = (absoluteOffset, fromIntegral (batSize + maybe 0 (const 512) batmapHeader + batmapSize))
         batmapOffset   = batSize + fromIntegral sectorLength

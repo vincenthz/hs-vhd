@@ -105,8 +105,8 @@ putHeaderPadding = putByteString $ B.replicate headerPaddingLength 0
 getCookie = cookie <$> getByteString 8
 putCookie (Cookie c) = putByteString c
 
-getBlockSize       = getWord32be
-putBlockSize       = putWord32be
+getBlockSize       = BlockSize <$> getWord32be
+putBlockSize (BlockSize sz) = putWord32be sz
 getChecksum        = getWord32be
 putChecksum        = putWord32be
 getCurrentSize     = getWord64be

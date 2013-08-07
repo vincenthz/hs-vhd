@@ -25,11 +25,12 @@ import Data.Maybe
 import Data.Serialize
 import Data.Time.Clock.POSIX
 import Data.Vhd.Bat
-import Data.Vhd.Block hiding (readData, readDataRange, writeDataRange)
+import Data.Vhd.Block (Block, BlockDataMapper)
 import qualified Data.Vhd.Block as Block
 import Data.Vhd.Checksum
 import Data.Vhd.Geometry
 import Data.Vhd.Node
+import Data.Vhd.Crypt
 import Data.Vhd.Types
 import Data.Vhd.Utils
 import Data.Vhd.Time
@@ -43,12 +44,17 @@ import System.IO
 
 data Vhd = Vhd
     { vhdBlockCount :: VirtualBlockCount
-    , vhdBlockSize  :: BlockByteCount
+    , vhdBlockSize  :: BlockSize
     , vhdNodes      :: [VhdNode]
     }
 
+vhdSectorPerBlock :: Vhd -> Word32
+vhdSectorPerBlock vhd = sz `div` Block.sectorLength
+  where BlockSize sz = vhdBlockSize vhd
+
 virtualSize :: Vhd -> VirtualByteCount
-virtualSize vhd = fromIntegral (vhdBlockCount vhd) * fromIntegral (vhdBlockSize vhd)
+virtualSize vhd = fromIntegral (vhdBlockCount vhd) * fromIntegral bsz
+  where BlockSize bsz = vhdBlockSize vhd
 
 withVhd :: FilePath -> (Vhd -> IO a) -> IO a
 withVhd = withVhdInner []
@@ -59,15 +65,17 @@ withVhd = withVhdInner []
     diskType   node = footerDiskType        $ nodeFooter node
 
     withVhdInner accumulatedNodes filePath f =
-        withVhdNode filePath $ \node ->
+        withVhdNode filePath $ \node -> do
             if diskType node == DiskTypeDifferencing
                 then withVhdInner (node : accumulatedNodes) (parentPath node) f
-                else f $ Vhd
-                    -- TODO: require consistent block count and size across all nodes.
-                    { vhdBlockCount = blockCount node
-                    , vhdBlockSize  = validateBlockSize $ blockSize  node
-                    , vhdNodes      = reverse $ node : accumulatedNodes
-                    }
+                else do
+                    validateBlockSize $ blockSize node
+                    f $ Vhd
+                        -- TODO: require consistent block count and size across all nodes.
+                        { vhdBlockCount = blockCount node
+                        , vhdBlockSize  = blockSize  node
+                        , vhdNodes      = reverse $ node : accumulatedNodes
+                        }
         where parentPath node = resolveColocatedFilePath filePath p
                 where ParentUnicodeName p = headerParentUnicodeName $ nodeHeader node
 
@@ -86,19 +94,18 @@ withVhd = withVhdInner []
 -- to open a VHD with (block size) > (maxBound :: Int).  Therefore, this
 -- function fails fast on attempting to open such a VHD file.
 --
-validateBlockSize :: BlockByteCount -> BlockByteCount
-validateBlockSize value =
-    if integerValue > integerLimit
-        then error
-            ( "Cannot open VHD file with block size " ++
-              "greater than upper bound of platform integer." )
-        else value
+validateBlockSize :: BlockSize -> IO ()
+validateBlockSize (BlockSize value)
+    | integerValue > integerLimit =
+        error "Cannot open VHD file with block size greater than upper bound of platform integer."
+    | otherwise =
+        return ()
     where
         integerValue = fromIntegral (value          ) :: Integer
         integerLimit = fromIntegral (maxBound :: Int) :: Integer
 
 data CreateParameters = CreateParameters
-    { createBlockSize         :: BlockByteCount
+    { createBlockSize         :: BlockSize
     , createDiskType          :: DiskType
     , createParentTimeStamp   :: Maybe VhdDiffTime
     , createParentUnicodeName :: Maybe ParentUnicodeName
@@ -137,7 +144,7 @@ create filePath createParams
     | createVirtualSize createParams == 0 = error "cannot create a 0-sized VHD"
     | otherwise                           = do
         nowVhdEpoch <- getVHDTime
-        uniqueid <- randomUniqueId
+        uniqueid    <- randomUniqueId
         create' filePath $ createParams
             { createTimeStamp = Just $ maybe nowVhdEpoch id $ createTimeStamp createParams
             , createUuid      = Just $ maybe uniqueid    id $ createUuid      createParams
@@ -152,29 +159,30 @@ create' filePath createParams =
     withFile filePath WriteMode $ \handle -> do
         B.hPut handle $ encode footer
         B.hPut handle $ encode header
-        hAlign handle (fromIntegral sectorLength)
+        hAlign handle (fromIntegral Block.sectorLength)
         -- create a BAT with every entry initialized to 0xffffffff.
         B.hPut handle $ B.replicate (fromIntegral batSize) 0xff
         -- maybe create a batmap
         when (createUseBatmap createParams) $ do
-            hAlign handle (fromIntegral sectorLength)
+            hAlign handle (fromIntegral Block.sectorLength)
             headerPos <- hTell handle
             B.hPut handle $ encode $ BatmapHeader
                 { batmapHeaderCookie   = cookie "tdbatmap"
-                , batmapHeaderOffset   = fromIntegral (headerPos + fromIntegral sectorLength)
-                , batmapHeaderSize     = (maxTableEntries `div` 8) `divRoundUp` sectorLength
+                , batmapHeaderOffset   = fromIntegral (headerPos + fromIntegral Block.sectorLength)
+                , batmapHeaderSize     = (maxTableEntries `div` 8) `divRoundUp` Block.sectorLength
                 , batmapHeaderVersion  = Version 1 2
                 , batmapHeaderChecksum = 0xffffffff
                 }
-            hAlign handle (fromIntegral sectorLength)
+            hAlign handle (fromIntegral Block.sectorLength)
             B.hPut handle $ B.replicate (fromIntegral (maxTableEntries `div` 8)) 0x0
-        hAlign handle (fromIntegral sectorLength)
+        hAlign handle (fromIntegral Block.sectorLength)
         B.hPut handle $ encode footer
 
     where
+        BlockSize bsz   = createBlockSize createParams
         virtualSize     = createVirtualSize createParams
-        maxTableEntries = fromIntegral (virtualSize `divRoundUp` fromIntegral (createBlockSize createParams))
-        batSize         = (maxTableEntries * 4) `roundUpToModulo` sectorLength
+        maxTableEntries = fromIntegral (virtualSize `divRoundUp` fromIntegral bsz)
+        batSize         = (maxTableEntries * 4) `roundUpToModulo` Block.sectorLength
         batPadSize      = batSize - maxTableEntries * 4
         footerSize      = 512
         headerSize      = 1024
@@ -190,7 +198,7 @@ create' filePath createParams =
             , footerCreatorHostOs      = CreatorHostOsWindows
             , footerOriginalSize       = virtualSize
             , footerCurrentSize        = virtualSize
-            , footerDiskGeometry       = diskGeometry (virtualSize `div` fromIntegral sectorLength)
+            , footerDiskGeometry       = diskGeometry (virtualSize `div` fromIntegral Block.sectorLength)
             , footerDiskType           = createDiskType createParams
             , footerChecksum           = 0
             , footerUniqueId           = fromJust $ createUuid createParams
@@ -235,102 +243,110 @@ readData :: Vhd -> IO BL.ByteString
 readData vhd = readDataRange vhd 0 (virtualSize vhd)
 
 -- | Reads data from the given virtual address range of the given VHD.
-readDataRange :: Vhd -> VirtualByteAddress -> VirtualByteCount -> IO BL.ByteString
-readDataRange vhd offset length =
-    -- To do: modify this function to read sub-blocks where appropriate.
-    if offset + length > virtualSize vhd
-        then error "cannot read data past end of VHD."
-        else fmap (trim . BL.fromChunks) (sequence blocks)
-    where
-        blocks     = map (readDataBlock vhd) [blockFirst .. blockLast]
-        blockFirst = fromIntegral $ (offset             ) `div` blockSize
-        blockLast  = fromIntegral $ (offset + length - 1) `div` blockSize
-        blockSize  = fromIntegral $ vhdBlockSize vhd
-        trim       = BL.take toTake . BL.drop toDrop
-            where
-                toTake = fromIntegral $ length
-                toDrop = fromIntegral $ offset `mod` blockSize
+--
+-- TODO: modify this function to read sub-blocks where appropriate.
+readDataRange :: Vhd     -- ^ Vhd chain to read from
+              -> Word64  -- ^ offset address in the VHD
+              -> Word64  -- ^ number of byte to read
+              -> IO BL.ByteString
+readDataRange vhd offset length
+    | offset + length > virtualSize vhd = error "cannot read data past end of VHD."
+    | otherwise = trim . BL.fromChunks <$> mapM (readDataBlock vhd) [blockFirst..blockLast]
+  where
+        (blockFirst,BlockByteAddress toDrop,_) = vaddrToBlock startAddr (vhdBlockSize vhd)
+        (blockLast,_,_)       = vaddrToBlock endAddr (vhdBlockSize vhd)
+        trim       = BL.take (fromIntegral length) . BL.drop (fromIntegral toDrop)
+        startAddr = VirtualByteAddress offset
+        endAddr   = VirtualByteAddress (offset + length)
 
 -- | Writes data to the given virtual address of the given VHD.
-writeDataRange :: Vhd -> VirtualByteAddress -> BL.ByteString -> IO ()
-writeDataRange vhd offset content = write (fromIntegral offset) content
+writeDataRange :: Vhd           -- ^ Vhd chain to write to
+               -> Word64        -- ^ offset address in the VHD
+               -> BL.ByteString -- ^ the data to write in the VHD
+               -> IO ()
+writeDataRange vhd offset content = write (VirtualByteAddress offset) content
   where
+    write :: VirtualByteAddress -> BL.ByteString -> IO ()
     write offset content
-        | offset > offsetMax = error "cannot write data past end of VHD."
-        | BL.null content    = return ()
-        | otherwise          = do
-            sectorOffset <- lookupOrCreateBlock node (fromIntegral blockNumber)
-            withBlock file (fromIntegral blockSize) sectorOffset $ \block -> do
-                Block.writeDataRange block (fromIntegral blockOffset) chunk
+        | offset > VirtualByteAddress offsetMax = error "cannot write data past end of VHD."
+        | BL.null content        = return ()
+        | otherwise              = do
+            sectorOffset <- lookupOrCreateBlock node blockNumber
+            withMappedBlock node sectorOffset blockNumber $ \block -> do
+                Block.writeDataRange bmap block blockOffset chunk
                 write offsetNext contentNext
                 where
-                    blockNumber  = (fromIntegral $ offset `div` blockSize) :: VirtualBlockAddress
-                    blockOffset  = offset `mod` blockSize
+                    (blockNumber, blockOffset, chunkLength)  = vaddrToBlock offset blockSize
                     chunk        = B.concat $ BL.toChunks $ fst contentSplit
-                    chunkLength  = fromIntegral $ blockSize - (offset `mod` blockSize)
-                    contentSplit = BL.splitAt chunkLength content
+                    contentSplit = BL.splitAt (fromIntegral chunkLength) content
                     contentNext  = snd contentSplit
-                    offsetNext   = ((offset `div` blockSize) * blockSize) + blockSize
+                    offsetNext   = vaddrNextBlock offset blockSize
+
+    bmap = vhdEncrypt `fmap` nodeCryptCtx node
 
     bat       = nodeBat node
     file      = nodeFilePath node
     node      = head $ vhdNodes vhd
     offsetMax = virtualSize vhd
-    blockSize = fromIntegral $ vhdBlockSize vhd
+    blockSize@(BlockSize bsz) = vhdBlockSize vhd
 
 -- | Reads all available data from the given virtual block of the given VHD.
 readDataBlock :: Vhd -> VirtualBlockAddress -> IO B.ByteString
 readDataBlock vhd virtualBlockAddress =
-    readDataBlockRange vhd virtualBlockAddress 0 ((vhdBlockSize vhd) `div` sectorLength)
+    readDataBlockRange vhd virtualBlockAddress 0 (vhdSectorPerBlock vhd)
 
 -- | Reads data from the given sector range of the given virtual block of the given VHD.
-readDataBlockRange :: Vhd -> VirtualBlockAddress -> BlockSectorAddress -> BlockSectorCount -> IO B.ByteString
+readDataBlockRange :: Vhd -> VirtualBlockAddress -> BlockSectorAddress -> Word32 -> IO B.ByteString
 readDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount =
     B.create
-        (fromIntegral $ sectorCount * sectorLength)
+        (fromIntegral $ sectorCount * Block.sectorLength)
         (unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount)
 
 -- | Unsafely reads data from the given sector range of the given virtual block of the given VHD.
-unsafeReadDataBlockRange :: Vhd -> VirtualBlockAddress -> BlockSectorAddress -> BlockSectorCount -> Ptr Word8 -> IO ()
-unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount resultPtr = buildResult
+unsafeReadDataBlockRange :: Vhd
+                         -> VirtualBlockAddress
+                         -> BlockSectorAddress
+                         -> Word32
+                         -> Ptr Word8
+                         -> IO ()
+unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount resultPtr = do
+    B.memset resultPtr 0 $ fromIntegral $ sectorCount * fromIntegral Block.sectorLength
+    copySectorsFromNodes sectorsToRead =<< nodeOffsets
   where
-    buildResult :: IO ()
-    buildResult = do
-        B.memset resultPtr 0 $ fromIntegral $ sectorCount * sectorLength
-        copySectorsFromNodes sectorsToRead =<< nodeOffsets
-
-    sectorsToRead = fromRange lo hi
-      where lo = fromIntegral $ sectorOffset
-            hi = fromIntegral $ sectorOffset + sectorCount
+    sectorsToRead = fromRange (fromIntegral lo) (fromIntegral hi)
+      where (BlockSectorAddress lo) = sectorOffset
+            hi = lo + sectorCount
 
     nodeOffsets :: IO [(VhdNode, PhysicalSectorAddress)]
     nodeOffsets = fmap catMaybes $ mapM maybeNodeOffset $ vhdNodes vhd
       where maybeNodeOffset node = (fmap . fmap) (node, ) $ lookupBlock (nodeBat node) virtualBlockAddress
 
-    copySectorsFromNodes :: BitSet -> [(VhdNode, PhysicalSectorAddress)] -> IO ()
-    copySectorsFromNodes sectorsRequested [] = return ()
+    copySectorsFromNodes :: BitSet BlockSectorAddress -> [(VhdNode, PhysicalSectorAddress)] -> IO ()
+    copySectorsFromNodes _                []                  = return ()
     copySectorsFromNodes sectorsRequested (nodeOffset : tail)
         | BitSet.isEmpty sectorsRequested = return ()
         | otherwise = do sectorsMissing <- copySectorsFromNode sectorsRequested nodeOffset
                          copySectorsFromNodes sectorsMissing tail
 
-    copySectorsFromNode :: BitSet -> (VhdNode, PhysicalSectorAddress) -> IO BitSet
+    copySectorsFromNode :: BitSet BlockSectorAddress -> (VhdNode, PhysicalSectorAddress) -> IO (BitSet BlockSectorAddress)
     copySectorsFromNode sectorsRequested (node, physicalSectorOfBlock) =
-        withBlock (nodeFilePath node) (vhdBlockSize vhd)
-            physicalSectorOfBlock $ copySectorsFromNodeBlock sectorsRequested
+        Block.withBlock (nodeFilePath node) (vhdBlockSize vhd) 0
+            physicalSectorOfBlock $ copySectorsFromNodeBlock sectorsRequested bmap
+      where bmap = vhdDecrypt `fmap` nodeCryptCtx node
 
-    copySectorsFromNodeBlock :: BitSet -> Block -> IO BitSet
-    copySectorsFromNodeBlock sectorsRequested block = do
+    copySectorsFromNodeBlock :: BitSet BlockSectorAddress -> Maybe BlockDataMapper -> Block -> IO (BitSet BlockSectorAddress)
+    copySectorsFromNodeBlock sectorsRequested bmap block = do
         sectorsPresentByteString <- Block.readBitmap block
         let sectorsPresent = fromByteString sectorsPresentByteString
             sectorsMissing = sectorsRequested `subtract`  sectorsPresent
             sectorsToCopy  = sectorsRequested `intersect` sectorsPresent
-        mapM_ (copySectorFromNodeBlock block) (map fromIntegral $ toList sectorsToCopy)
+        mapM_ (copySectorFromNodeBlock bmap block) (map fromIntegral $ BitSet.toList sectorsToCopy)
         return sectorsMissing
 
-    copySectorFromNodeBlock :: Block -> BlockSectorAddress -> IO ()
-    copySectorFromNodeBlock block sectorToCopy =
-        unsafeReadDataRange block sourceByteOffset sectorLength target where
-            sourceByteOffset = sectorLength * (sectorToCopy               )
-            targetByteOffset = sectorLength * (sectorToCopy - sectorOffset)
+    copySectorFromNodeBlock :: Maybe BlockDataMapper -> Block -> BlockSectorAddress -> IO ()
+    copySectorFromNodeBlock bmap block sectorToCopy =
+        Block.unsafeReadDataRange bmap block sourceByteOffset Block.sectorLength target
+      where
+            sourceByteOffset = Block.blockSectorToByte sectorToCopy
+            (BlockByteAddress targetByteOffset) = Block.blockSectorToByte (sectorToCopy - sectorOffset)
             target = plusPtr resultPtr $ fromIntegral $ targetByteOffset

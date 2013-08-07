@@ -11,27 +11,27 @@ module Data.BitSet
     )
     where
 
-import Control.Exception
 import Data.Bits
 import qualified Data.ByteString as B
 import Data.Word
 import Prelude hiding (subtract)
 
-data BitSet = BitSet B.ByteString
+data BitSet a = BitSet B.ByteString
 
-instance Eq BitSet where
+instance Eq (BitSet a) where
     (BitSet b1) == (BitSet b2) = b1' == b2'
         where (b1', b2') = byteStringsPad b1 b2
 
-instance Show BitSet where show = show . toList
+instance Show a => Show (BitSet a) where
+    show = show . toList
 
-empty :: BitSet
+empty :: Num a => BitSet a
 empty = BitSet B.empty
 
-fromByteString :: B.ByteString -> BitSet
+fromByteString :: Num a => B.ByteString -> BitSet a
 fromByteString = BitSet
 
-fromRange :: Int -> Int -> BitSet
+fromRange :: Int -> Int -> BitSet a
 fromRange lo hi = BitSet generate where
 
     generate
@@ -46,25 +46,27 @@ fromRange lo hi = BitSet generate where
         | loByteCeiling == hiByteFloor = B.concat [clearBytes, riseByte, fallByte]
         | loByteCeiling <  hiByteFloor = B.concat [clearBytes, riseByte, setBytes, fallByte]
 
-    (loBit, loByteFloor, loByteCeiling) = (lo `mod` 8, lo `div` 8, (lo + 7) `div` 8)
-    (hiBit, hiByteFloor, hiByteCeiling) = (hi `mod` 8, hi `div` 8, (hi + 7) `div` 8)
+    (loByteFloor, loBit) = lo `divMod` 8
+    (hiByteFloor, hiBit) = hi `divMod` 8
+    loByteCeiling = (lo + 7) `div` 8
+    hiByteCeiling = (hi + 7) `div` 8
 
-    clearBytes = B.replicate (loByteFloor                ) 0x00
-    setBytes   = B.replicate (hiByteFloor - loByteCeiling) 0xff
+    clearBytes = B.replicate (fromIntegral loByteFloor) 0x00
+    setBytes   = B.replicate (fromIntegral (hiByteFloor - loByteCeiling)) 0xff
 
     riseByte = B.singleton $ setBits 0 loBit     8
     fallByte = B.singleton $ setBits 0     0 hiBit
     humpByte = B.singleton $ setBits 0 loBit hiBit
 
-toList :: BitSet -> [Int]
-toList (BitSet b) = map snd $ filter fst $ zip (byteStringBits b) [0 ..]
+toList :: BitSet a -> [Int]
+toList (BitSet b) = map snd $ filter fst $ zip (byteStringBits b) [0..]
 
-isEmpty :: BitSet -> Bool
+isEmpty :: BitSet a -> Bool
 isEmpty (BitSet b) = B.all (== 0) b
 
-intersect :: BitSet -> BitSet -> BitSet
-union     :: BitSet -> BitSet -> BitSet
-subtract  :: BitSet -> BitSet -> BitSet
+intersect :: BitSet a -> BitSet a -> BitSet a
+union     :: BitSet a -> BitSet a -> BitSet a
+subtract  :: BitSet a -> BitSet a -> BitSet a
 
 intersect = binaryOp (.&.)
 union     = binaryOp (.|.)
@@ -72,7 +74,7 @@ subtract  = binaryOp (\x y -> x .&. complement y)
 
 binaryOp f (BitSet b1) (BitSet b2) =
     BitSet $ byteStringPackZipWith f b1' b2'
-    where (b1', b2') = byteStringsPad b1 b2
+  where (b1', b2') = byteStringsPad b1 b2
 
 byteStringBits byteString = do
     word <- B.unpack byteString
@@ -101,9 +103,9 @@ byteStringsContract b1 b2 =
         length2 = B.length b2
 
 setBits :: Bits a => a -> Int -> Int -> a
-setBits value loBit hiBit = if loBit < hiBit
-    then setBits (setBit value loBit) (loBit + 1) hiBit
-    else value
+setBits acc loBit hiBit
+    | loBit < hiBit = setBits (setBit acc loBit) (loBit + 1) hiBit
+    | otherwise     = acc
 
 word8Bits :: Word8 -> [Bool]
 word8Bits w = map (testBit w) [0 .. 7]

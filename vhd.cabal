@@ -21,6 +21,7 @@ Flag executable
 Library
   Build-depends:     base >= 4 && < 5
                    , bytestring
+                   , byteable
                    , filepath
                    , directory
                    , mmap
@@ -29,12 +30,14 @@ Library
                    , cereal
                    , random
                    , storable-endian
+                   , cipher-aes >= 0.2.0
   Exposed-modules:   Data.Vhd
                      Data.Vhd.Lowlevel
                      Data.Vhd.Time
   Other-modules:     Data.BitSet
                      Data.Range
                      Data.Vhd.Bat
+                     Data.Vhd.Crypt
                      Data.Vhd.Bitmap
                      Data.Vhd.Block
                      Data.Vhd.Checksum
@@ -43,6 +46,7 @@ Library
                      Data.Vhd.Serialize
                      Data.Vhd.Types
                      Data.Vhd.Utils
+  ghc-options:       -Wall -fwarn-tabs
 
 Test-Suite test-vhd
   type:              exitcode-stdio-1.0
@@ -69,6 +73,7 @@ Executable           vhd
     Buildable:       True
     Build-depends:   base >= 3 && < 5
                    , bytestring
+                   , byteable
                    , filepath
                    , directory
                    , mmap
@@ -78,6 +83,7 @@ Executable           vhd
                    , random
                    , storable-endian
                    , vhd
+                   , cipher-aes >= 0.2.0
   else
     Buildable:       False
 

@@ -101,16 +101,16 @@ cmdRead _ [file] = withVhdNode file $ \node -> do
 
     mapM_ (\(f, s) -> putStrLn (f ++ " : " ++ s))
         [ ("disk-geometry    ", show $ footerDiskGeometry ftr)
-        , ("original-size    ", showBlockSize $ footerOriginalSize ftr)
-        , ("current-size     ", showBlockSize $ footerOriginalSize ftr)
+        , ("original-size    ", showSize $ footerOriginalSize ftr)
+        , ("current-size     ", showSize $ footerOriginalSize ftr)
         , ("type             ", show $ footerDiskType ftr)
         , ("footer-checksum  ", showChecksum (footerChecksum ftr) (verifyFooterChecksum ftr))
         , ("uuid             ", show $ footerUniqueId ftr)
         , ("timestamp        ", showTimestamp $ footerTimeStamp ftr)
         ]
     allocated <- newIORef 0
-    batIterate (nodeBat node) (fromIntegral $ headerMaxTableEntries hdr) $ \i n -> do
-        unless (n == 0xffffffff) $ modifyIORef allocated ((+) 1) >> printf "BAT[%.5x] = %08x\n" i n
+    batIterate (nodeBat node) (fromIntegral $ headerMaxTableEntries hdr) $ \i@(VirtualBlockAddress a) n -> do
+        unless (VirtualBlockAddress n == 0xffffffff) $ modifyIORef allocated ((+) 1) >> printf "BAT[%.5x] = %08x\n" a n
     nb <- readIORef allocated
     putStrLn ("blocks allocated  : " ++ show nb ++ "/" ++ show (headerMaxTableEntries hdr))
 cmdRead _ _ = error "usage: read <file>"
@@ -119,7 +119,9 @@ cmdSnapshot _ [fileVhdParent, fileVhdChild] =
     withVhd fileVhdParent $ \vhdParent -> snapshot vhdParent fileVhdChild
 cmdSnapshot _ _ = error "usage: snapshot <parent vhd file> <child vhd file>"
 
-showBlockSize i
+showBlockSize (BlockSize bsz) = showSize bsz
+
+showSize i
     | i < 1024     = printf "%d bytes" i
     | i < (1024^2) = printf "%d KiB" (i `div` 1024)
     | i < (1024^3) = printf "%d MiB" (i `div` (1024^2))

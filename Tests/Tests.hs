@@ -35,6 +35,9 @@ instance Arbitrary ParentUnicodeName where
 instance Arbitrary DiskGeometry where
     arbitrary = DiskGeometry <$> arbitrary <*> arbitrary <*> arbitrary
 
+instance Arbitrary BlockSize where
+    arbitrary = return $ BlockSize (2*1024*1024)
+
 instance Arbitrary DiskType where
     arbitrary = elements [ DiskTypeFixed, DiskTypeDynamic, DiskTypeDifferencing ]
 
