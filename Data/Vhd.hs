@@ -34,6 +34,7 @@ import Data.Vhd.Types
 import Data.Vhd.UniqueId
 import Data.Vhd.Utils
 import Data.Vhd.Time
+import Data.Vhd.Const
 import Data.Word
 import Foreign.Ptr
 import Prelude hiding (subtract)
@@ -162,26 +163,26 @@ create' filePath createParams =
         B.hPut handle $ B.replicate (fromIntegral batSize) 0xff
         -- maybe create a batmap
         when (createUseBatmap createParams) $ do
-            hAlign handle (fromIntegral Block.sectorLength)
+            hAlign handle sectorLength
             headerPos <- hTell handle
             B.hPut handle $ encode $ BatmapHeader
                 { batmapHeaderCookie   = cookie "tdbatmap"
-                , batmapHeaderOffset   = fromIntegral (headerPos + fromIntegral Block.sectorLength)
-                , batmapHeaderSize     = (maxTableEntries `div` 8) `divRoundUp` Block.sectorLength
+                , batmapHeaderOffset   = fromIntegral (headerPos + sectorLength)
+                , batmapHeaderSize     = (maxTableEntries `div` 8) `divRoundUp` sectorLength
                 , batmapHeaderVersion  = Version 1 2
                 , batmapHeaderChecksum = 0xffffffff
                 }
-            hAlign handle (fromIntegral Block.sectorLength)
+            hAlign handle sectorLength
             B.hPut handle $ B.replicate (fromIntegral (maxTableEntries `div` 8)) 0x0
-        hAlign handle (fromIntegral Block.sectorLength)
+        hAlign handle sectorLength
         B.hPut handle $ encode footer
 
     where
         BlockSize bsz   = createBlockSize createParams
         virtualSize     = createVirtualSize createParams
         maxTableEntries = fromIntegral (virtualSize `divRoundUp` fromIntegral bsz)
-        batSize         = (maxTableEntries * 4) `roundUpToModulo` Block.sectorLength
         batPadSize      = batSize - maxTableEntries * 4
+        batSize         = (maxTableEntries * 4) `roundUpToModulo` sectorLength
         footerSize      = 512
         headerSize      = 1024
 
@@ -196,7 +197,7 @@ create' filePath createParams =
             , footerCreatorHostOs      = CreatorHostOsWindows
             , footerOriginalSize       = virtualSize
             , footerCurrentSize        = virtualSize
-            , footerDiskGeometry       = diskGeometry (virtualSize `div` fromIntegral Block.sectorLength)
+            , footerDiskGeometry       = diskGeometry (virtSize `div` Block.sectorLength)
             , footerDiskType           = createDiskType createParams
             , footerChecksum           = 0
             , footerUniqueId           = fromJust $ createUuid createParams
@@ -308,7 +309,7 @@ unsafeReadDataBlockRange :: Vhd
                          -> Ptr Word8
                          -> IO ()
 unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount resultPtr = do
-    B.memset resultPtr 0 $ fromIntegral $ sectorCount * fromIntegral Block.sectorLength
+    _ <- B.memset resultPtr 0 $ fromIntegral $ sectorCount * sectorLength
     copySectorsFromNodes sectorsToRead =<< nodeOffsets
   where
     sectorsToRead = fromRange (fromIntegral lo) (fromIntegral hi)

@@ -8,6 +8,7 @@ import qualified Data.ByteString as B
 import Data.List
 import qualified Data.Text as T
 import Data.Vhd.Time
+import Data.Vhd.Const
 import Data.Vhd.UniqueId
 import Data.Text.Encoding
 import Data.Word

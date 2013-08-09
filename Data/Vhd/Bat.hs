@@ -20,6 +20,7 @@ import Foreign.Storable
 import Data.Vhd.Bitmap
 import Data.Vhd.Serialize
 import Data.Vhd.Types
+import Data.Vhd.Const
 import Data.Vhd.Utils
 import System.IO.MMap
 
@@ -27,8 +28,6 @@ data Bat      = Bat BatStart BatEnd (Maybe Batmap)
 type BatStart = Ptr PhysicalSectorAddress
 type BatEnd   = Ptr PhysicalSectorAddress
 data Batmap   = Batmap Bitmap Int
-
-sectorLength = 512
 
 emptyEntry = 0xffffffff
 

@@ -22,6 +22,7 @@ import qualified Data.ByteString.Internal as B
 import Data.Vhd.Bat
 import Data.Vhd.Bitmap
 import Data.Vhd.Types
+import Data.Vhd.Const
 import Data.Vhd.Utils
 import Data.Word
 import Foreign.Ptr
@@ -40,8 +41,6 @@ data Block = Block
 
 newtype Sector = Sector (Ptr Word8)
 newtype Data = Data (Ptr Word8)
-
-sectorLength = 512
 
 blockSectorToByte :: BlockSectorAddress -> BlockByteAddress
 blockSectorToByte (BlockSectorAddress s) = BlockByteAddress (s * sectorLength)
