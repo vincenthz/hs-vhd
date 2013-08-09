@@ -2,6 +2,7 @@ module Data.Vhd.Block
     ( Block
     , BlockDataMapper
     , Sector
+    , sectorPerBlock
     , blockSectorToByte
     , bitmapSizeOfBlockSize
     , bitmapOfBlock
@@ -44,6 +45,10 @@ newtype Data = Data (Ptr Word8)
 
 blockSectorToByte :: BlockSectorAddress -> BlockByteAddress
 blockSectorToByte (BlockSectorAddress s) = BlockByteAddress (s * sectorLength)
+
+sectorPerBlock :: Block -> BlockSectorAddress
+sectorPerBlock block = BlockSectorAddress (fromIntegral bsz `div` sectorLength)
+ where BlockSize bsz = blockSize block
 
 -- | Finds the padded size (in bytes) of the bitmap for a given block.
 bitmapSizeOfBlock :: Block -> Int
