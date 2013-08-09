@@ -10,7 +10,6 @@ module Data.Vhd.Crypt
 
 import Control.Applicative ((<$>))
 import Data.List (isSuffixOf)
-import Data.Word
 import Data.Bits (shiftR)
 import Data.Vhd.Types (VirtualBlockAddress(..), BlockByteAddress(..))
 import Crypto.Cipher.AES

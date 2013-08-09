@@ -7,8 +7,8 @@ module Data.Vhd.Checksum
 
 import Data.Bits
 import qualified Data.ByteString as B
+import Data.Vhd.Serialize ()
 import Data.Serialize
-import Data.Vhd.Serialize
 import Data.Vhd.Types
 import Data.Word
 

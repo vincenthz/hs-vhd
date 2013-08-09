@@ -8,29 +8,11 @@ module Data.Vhd.Lowlevel
     ) where
 
 import Control.Applicative
-import Control.Monad
-import Data.BitSet
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Internal as B
-import qualified Data.ByteString.Unsafe as B
-import Data.Maybe
 import Data.Serialize
-import Data.Time.Clock.POSIX
-import Data.Vhd.Bat
-import Data.Vhd.Block hiding (readData, readDataRange, writeDataRange)
-import qualified Data.Vhd.Block as Block
 import Data.Vhd.Checksum
-import Data.Vhd.Geometry
-import Data.Vhd.Node
 import Data.Vhd.Types
-import Data.Vhd.Utils
-import Data.Word
-import Foreign.C.String
-import Foreign.C.Types
-import Foreign.Ptr
 import Prelude hiding (subtract)
-import System.FilePath.Posix
 import System.IO
 
 -- | read footer directly from a vhd file.
