@@ -55,3 +55,5 @@ instance Serialize Header where
         put $ headerParentLocatorEntries h
         putHeaderPadding
 
+instance Sized Header where
+    sized _ = 1024

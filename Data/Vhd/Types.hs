@@ -15,6 +15,9 @@ import Data.Word
 import System.Random
 import Text.Printf
 
+class Sized a where
+    sized :: Num n => a -> n
+
 data Footer = Footer
     { footerCookie             :: Cookie
     , footerIsTemporaryDisk    :: Bool
@@ -33,6 +36,8 @@ data Footer = Footer
     , footerIsSavedState       :: Bool
     } deriving (Show, Eq)
 
+instance Sized Footer where
+    sized _ = 512
 data BatmapHeader = BatmapHeader
     { batmapHeaderCookie       :: Cookie
     , batmapHeaderOffset       :: PhysicalByteAddress
