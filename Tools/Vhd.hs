@@ -110,7 +110,9 @@ cmdRead _ [file] = withVhdNode file $ \node -> do
         ]
     allocated <- newIORef 0
     batIterate (nodeBat node) (fromIntegral $ headerMaxTableEntries hdr) $ \i@(VirtualBlockAddress a) n -> do
-        unless (VirtualBlockAddress n == 0xffffffff) $ modifyIORef allocated ((+) 1) >> printf "BAT[%.5x] = %08x\n" a n
+        case n of
+            Nothing  -> return ()
+            Just psa -> modifyIORef allocated ((+) 1) >> printf "BAT[%.5x] = %08x\n" a psa
     nb <- readIORef allocated
     putStrLn ("blocks allocated  : " ++ show nb ++ "/" ++ show (headerMaxTableEntries hdr))
 cmdRead _ _ = error "usage: read <file>"

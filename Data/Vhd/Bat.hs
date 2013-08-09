@@ -3,7 +3,6 @@ module Data.Vhd.Bat
     , batGetSize
     , containsBlock
     , lookupBlock
-    , unsafeLookupBlock
     , hasBitmap
     , batWrite
     , batMmap
@@ -50,22 +49,15 @@ batGetSize header footer = fromIntegral ((maxEntries * 4) `roundUpToModulo` sect
 -- | Returns true if (and only if) the given BAT contains an entry for the
 --   block at the given virtual address.
 containsBlock :: Bat -> VirtualBlockAddress -> IO Bool
-containsBlock = (fmap (/= emptyEntry) .) . unsafeLookupBlock
+containsBlock bat vba = maybe False (const True) `fmap` lookupBlock bat vba
 
 -- | Returns the physical sector address for the block at the given virtual
---   address, if (and only if) the given BAT contains an entry for that block.
+--   address.
 lookupBlock :: Bat -> VirtualBlockAddress -> IO (Maybe PhysicalSectorAddress)
-lookupBlock b n =
-    fmap
-        (\x -> if x == emptyEntry then Nothing else Just x)
-        (unsafeLookupBlock b n)
-
--- | Returns the physical sector address for the block at the given virtual
---   address. The value returned is valid if (and only if) the specified BAT
---   contains an entry for that block.
-unsafeLookupBlock :: Bat -> VirtualBlockAddress -> IO PhysicalSectorAddress
-unsafeLookupBlock (Bat bptr _ _) (VirtualBlockAddress n) = peekBE ptr
+lookupBlock (Bat bptr _ _) (VirtualBlockAddress n) = justBlock `fmap` peekBE ptr
     where ptr = bptr `plusPtr` ((fromIntegral n) * 4)
+          justBlock psa | psa == emptyEntry = Nothing
+                        | otherwise         = Just psa
 
 -- | Sets the physical sector address for the block at the given virtual
 --   address, in the specified BAT.
@@ -87,8 +79,8 @@ batMmap file header footer batmapHeader f =
         batSize        = batGetSize header footer
         batmapSize     = maybe 0 (fromIntegral . (* sectorLength) . batmapHeaderSize) batmapHeader
 
-batIterate :: Bat -> VirtualBlockAddress -> (VirtualBlockAddress -> PhysicalSectorAddress -> IO ()) -> IO ()
-batIterate bat nb f = forM_ [0 .. (nb - 1)] (\i -> unsafeLookupBlock bat i >>= \n -> f i n)
+batIterate :: Bat -> VirtualBlockAddress -> (VirtualBlockAddress -> Maybe PhysicalSectorAddress -> IO ()) -> IO ()
+batIterate bat nb f = forM_ [0 .. (nb - 1)] (\i -> lookupBlock bat i >>= \n -> f i n)
 
 -- | Updates the checksum in the batmap, if the batmap exists.
 batUpdateChecksum :: Bat -> IO ()
