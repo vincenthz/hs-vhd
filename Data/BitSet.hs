@@ -45,11 +45,12 @@ fromRange lo hi = BitSet generate where
         | loByteFloor   == hiByteFloor = B.concat [clearBytes, humpByte]
         | loByteCeiling == hiByteFloor = B.concat [clearBytes, riseByte, fallByte]
         | loByteCeiling <  hiByteFloor = B.concat [clearBytes, riseByte, setBytes, fallByte]
+        | otherwise                    = error "cannot happen"
 
     (loByteFloor, loBit) = lo `divMod` 8
     (hiByteFloor, hiBit) = hi `divMod` 8
     loByteCeiling = (lo + 7) `div` 8
-    hiByteCeiling = (hi + 7) `div` 8
+    --hiByteCeiling = (hi + 7) `div` 8
 
     clearBytes = B.replicate (fromIntegral loByteFloor) 0x00
     setBytes   = B.replicate (fromIntegral (hiByteFloor - loByteCeiling)) 0xff
@@ -72,6 +73,7 @@ intersect = binaryOp (.&.)
 union     = binaryOp (.|.)
 subtract  = binaryOp (\x y -> x .&. complement y)
 
+binaryOp :: (Word8 -> Word8 -> Word8) -> BitSet a -> BitSet b -> BitSet c
 binaryOp f (BitSet b1) (BitSet b2) =
     BitSet $ byteStringPackZipWith f b1' b2'
   where (b1', b2') = byteStringsPad b1 b2
