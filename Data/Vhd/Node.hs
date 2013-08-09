@@ -6,6 +6,7 @@ module Data.Vhd.Node
     , lookupOrCreateBlock
     , withVhdNode
     , withMappedBlock
+    , iterateBlockSectors
     ) where
 
 import Control.Applicative ((<$>))
@@ -15,6 +16,7 @@ import Data.ByteString.Char8 ()
 import Data.IORef
 import Data.Serialize (decode, encode)
 import Data.Vhd.Block
+import Data.Vhd.Bitmap (bitmapGet)
 import qualified Data.Vhd.Bat as Bat
 import Data.Vhd.Types
 import Data.Vhd.Utils
@@ -104,3 +106,17 @@ appendEmptyBlock node n = do
 withMappedBlock :: VhdNode -> PhysicalSectorAddress -> VirtualBlockAddress -> (Block -> IO a) -> IO a
 withMappedBlock vhd psa vba f = withBlock (nodeFilePath vhd) blockSize vba psa f
   where blockSize = headerBlockSize $ nodeHeader vhd
+
+iterateBlockSectors :: VhdNode
+                    -> VirtualBlockAddress
+                    -> (Block -> BlockSectorAddress -> Bool -> IO ())
+                    -> IO ()
+iterateBlockSectors vhd vba f = do
+    mpsa <- Bat.lookupBlock (nodeBat vhd) vba
+    case mpsa of
+        Nothing  -> return ()
+        Just psa -> withMappedBlock vhd psa vba iterateBlockBitmap
+    where iterateBlockBitmap block =
+              forM_ [0..(nbSectors-1)] $ \sector@(BlockSectorAddress bsa) ->
+                  bitmapGet (bitmapOfBlock block) (fromIntegral bsa) >>= f block sector
+            where nbSectors = sectorPerBlock block
