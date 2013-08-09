@@ -71,8 +71,10 @@ withVhdNode filePath f = do
 
 lookupOrCreateBlock :: VhdNode -> VirtualBlockAddress -> IO PhysicalSectorAddress
 lookupOrCreateBlock node blockNumber = do
-    unlessM (Bat.containsBlock (nodeBat node) blockNumber) $ appendEmptyBlock node blockNumber
-    Bat.unsafeLookupBlock (nodeBat node) blockNumber
+    mpsa <- Bat.lookupBlock (nodeBat node) blockNumber
+    case mpsa of
+        Nothing  -> appendEmptyBlock node blockNumber
+        Just psa -> return psa
 
 containsBlock :: VhdNode -> VirtualBlockAddress -> IO Bool
 containsBlock node = Bat.containsBlock (nodeBat node)
