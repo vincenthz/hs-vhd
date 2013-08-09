@@ -158,7 +158,7 @@ create' filePath createParams =
     withFile filePath WriteMode $ \handle -> do
         B.hPut handle $ encode footer
         B.hPut handle $ encode header
-        hAlign handle (fromIntegral Block.sectorLength)
+        hAlign handle sectorLength
         -- create a BAT with every entry initialized to 0xffffffff.
         B.hPut handle $ B.replicate (fromIntegral batSize) 0xff
         -- maybe create a batmap
