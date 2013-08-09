@@ -78,17 +78,15 @@ containsBlock :: VhdNode -> VirtualBlockAddress -> IO Bool
 containsBlock node = Bat.containsBlock (nodeBat node)
 
 -- | Create a new empty block at the end of the vhd file
-appendEmptyBlock :: VhdNode -> VirtualBlockAddress -> IO ()
+appendEmptyBlock :: VhdNode -> VirtualBlockAddress -> IO PhysicalSectorAddress
 appendEmptyBlock node n = do
     -- seek to the end of the file minus the footer
     hSeek (nodeHandle node) SeekFromEnd 512
 
     pos <- hTell (nodeHandle node)
-    let (sector, m) = pos `divMod` 512
+    let sector = addrToSector (fromIntegral pos)
 
-    unless (m == 0) $ error "wrong sector alignment"
-
-    Bat.batWrite (nodeBat node) n (fromIntegral sector)
+    Bat.batWrite (nodeBat node) n sector
     modifyIORef (nodeModified node) (const True)
     -- write bitmap, then write block with the optional block data mapper
     B.hPut (nodeHandle node) $ B.replicate bitmapSize 0
@@ -96,6 +94,7 @@ appendEmptyBlock node n = do
     -- align to the next sector length and then re-write the footer
     hAlign (nodeHandle node) (fromIntegral sectorLength)
     B.hPut (nodeHandle node) $ encode (nodeFooter node)
+    return sector
   where
         bitmapSize = bitmapSizeOfBlockSize blockSize
         blockSize@(BlockSize bsz)  = headerBlockSize $ nodeHeader node
