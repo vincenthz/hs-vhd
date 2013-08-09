@@ -12,7 +12,7 @@ diskGeometry totalSectors' =
     DiskGeometry
         (fromIntegral cylinders)
         (fromIntegral heads)
-        (fromIntegral sectorsPerTrack)
+        sectorsPerTrack
   where
         totalSectors = min totalSectors' (65535 * 16 * 255)
         calculate
