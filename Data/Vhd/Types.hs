@@ -106,6 +106,9 @@ vaddrNextBlock (VirtualByteAddress b) (BlockSize blocksz) =
     VirtualByteAddress (((b `div` sz) * sz) + sz)
   where sz = fromIntegral blocksz
 
+addrToSector :: Word64 -> PhysicalSectorAddress
+addrToSector w = fromIntegral (w `div` sectorLength)
+
 data Version      = Version VersionMajor VersionMinor deriving (Show, Eq)
 type VersionMajor = Word16
 type VersionMinor = Word16
