@@ -79,7 +79,7 @@ cmdPropGet _ [file, field] = withVhdNode file $ \node -> do
         _                     -> error "unknown field"
 cmdPropGet _ _ = error "usage: prop-get <file> <field>"
 
-cmdRead _ [file] = withVhdNode file $ \node -> do
+cmdRead opts [file] = withVhdNode file $ \node -> do
     let hdr = nodeHeader node
     let ftr = nodeFooter node
     mapM_ (\(f, s) -> putStrLn (f ++ " : " ++ s))
@@ -112,7 +112,7 @@ cmdRead _ [file] = withVhdNode file $ \node -> do
     batIterate (nodeBat node) (fromIntegral $ headerMaxTableEntries hdr) $ \i@(VirtualBlockAddress a) n -> do
         case n of
             Nothing  -> return ()
-            Just psa -> modifyIORef allocated ((+) 1) >> printf "BAT[%.5x] = %08x\n" a psa
+            Just psa -> modifyIORef allocated ((+) 1) >> when (DumpBat `elem` opts) (printf "BAT[%.5x] = %08x\n" a psa)
     nb <- readIORef allocated
     putStrLn ("blocks allocated  : " ++ show nb ++ "/" ++ show (headerMaxTableEntries hdr))
 cmdRead _ _ = error "usage: read <file>"
@@ -150,6 +150,7 @@ data OptFlag =
       Help
     | Offset String
     | Size String
+    | DumpBat
     deriving (Show,Eq)
 
 knownCommands :: [ (String, [String] -> IO ()) ]
@@ -159,7 +160,7 @@ knownCommands =
     , ("extract",  wrapOpt cmdExtract [helpOpt,offsetOpt,sizeOpt])
     , ("prop-get", wrapOpt cmdPropGet [helpOpt])
     , ("set-uuid", wrapOpt cmdPropSetUuid [helpOpt])
-    , ("read"    , wrapOpt cmdRead [helpOpt])
+    , ("read"    , wrapOpt cmdRead [helpOpt,dumpBatOpt])
     , ("snapshot", wrapOpt cmdSnapshot [helpOpt])
     , ("help"    , wrapOpt cmdHelp [])
     ]
@@ -171,6 +172,7 @@ knownCommands =
         helpOpt   = Option ['h'] ["help"] (NoArg Help) "ask for help"
         offsetOpt = Option ['o'] ["offset"] (ReqArg Offset "offset") "change the start offset"
         sizeOpt   = Option ['z'] ["size"] (ReqArg Size "size") "size in bytes"
+        dumpBatOpt= Option []    ["dump-bat"] (NoArg DumpBat) "dump bat allocation"
 
 usage msg = do
     maybe (return ()) putStrLn msg
