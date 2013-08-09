@@ -10,6 +10,7 @@ import qualified Data.ByteString as B
 import Data.Vhd.Serialize ()
 import Data.Serialize
 import Data.Vhd.Types
+import Data.Vhd.Header
 import Data.Word
 
 plus :: Checksum -> Word8 -> Checksum

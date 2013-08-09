@@ -16,9 +16,11 @@ import Data.ByteString.Char8 ()
 import Data.IORef
 import Data.Serialize (decode, encode)
 import Data.Vhd.Block
+import Data.Vhd.Header
 import Data.Vhd.Bitmap (bitmapGet)
 import qualified Data.Vhd.Bat as Bat
 import Data.Vhd.Types
+import Data.Vhd.Serialize ()
 import Data.Vhd.Utils
 import Data.Vhd.Crypt
 import System.Directory
@@ -96,7 +98,7 @@ appendEmptyBlock node n = do
     B.hPut (nodeHandle node) $ B.replicate bitmapSize 0
     B.hPut (nodeHandle node) $ maybe id (\cc -> vhdEncrypt cc n 0) (nodeCryptCtx node) $ B.replicate (fromIntegral bsz) 0
     -- align to the next sector length and then re-write the footer
-    hAlign (nodeHandle node) (fromIntegral sectorLength)
+    hAlign (nodeHandle node) sectorLength
     B.hPut (nodeHandle node) $ encode (nodeFooter node)
     return sector
   where

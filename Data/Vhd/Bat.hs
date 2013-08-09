@@ -13,12 +13,11 @@ module Data.Vhd.Bat
 import Control.Monad
 import Data.Bits
 import Data.Storable.Endian
-import Data.Word
 import Foreign.Ptr
 import Foreign.Storable
 import Data.Vhd.Bitmap
-import Data.Vhd.Serialize
 import Data.Vhd.Types
+import Data.Vhd.Header
 import Data.Vhd.Const
 import Data.Vhd.Utils
 import System.IO.MMap
@@ -28,6 +27,7 @@ type BatStart = Ptr PhysicalSectorAddress
 type BatEnd   = Ptr PhysicalSectorAddress
 data Batmap   = Batmap Bitmap Int
 
+emptyEntry :: PhysicalSectorAddress
 emptyEntry = 0xffffffff
 
 hasBitmap (Bat _ _ (Nothing)) = False

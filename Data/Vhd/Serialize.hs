@@ -16,36 +16,6 @@ import Data.Vhd.Types
 import Data.Vhd.UniqueId
 import Data.Vhd.Time
 
-instance Serialize Header where
-    get = Header
-        <$> getCookie
-        <*> getDataOffset
-        <*> getTableOffset
-        <*> getVersion
-        <*> getMaxTableEntries
-        <*> getBlockSize
-        <*> getChecksum
-        <*> getParentUniqueId
-        <*> getParentTimeStamp
-        <*> getByteString 4
-        <*> getParentUnicodeName
-        <*> get
-        <*  getHeaderPadding
-    put h = do
-        putCookie               $ headerCookie               h
-        putDataOffset           $ headerDataOffset           h
-        putTableOffset          $ headerTableOffset          h
-        putVersion              $ headerVersion              h
-        putMaxTableEntries      $ headerMaxTableEntries      h
-        putBlockSize            $ headerBlockSize            h
-        putChecksum             $ headerChecksum             h
-        putParentUniqueId       $ headerParentUniqueId       h
-        putParentTimeStamp      $ headerParentTimeStamp      h
-        putByteString           $ headerReserved1            h
-        putParentUnicodeName    $ headerParentUnicodeName    h
-        put $ headerParentLocatorEntries h
-        putHeaderPadding
-
 instance Serialize Footer where
     get = Footer
         <$> getCookie
@@ -162,10 +132,15 @@ putIsSavedState i = putWord8 (if i then 1 else 0)
 getUniqueId = uniqueId <$> getByteString 16
 putUniqueId uid = putByteString $ toBytes uid
 
+getParentUniqueId :: Get UniqueId
 getParentUniqueId = getUniqueId
+
+putParentUniqueId :: UniqueId -> Put
 putParentUniqueId = putUniqueId
 
+getVersion :: Get Version
 getVersion = Version <$> getWord16be <*> getWord16be
+putVersion :: Version -> Put
 putVersion (Version major minor) = putWord16be major >> putWord16be minor
 
 getCreatorVersion = getVersion

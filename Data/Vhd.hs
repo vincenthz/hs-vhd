@@ -12,6 +12,7 @@ module Data.Vhd
     , writeDataRange
     , withVhd
     , module Data.Vhd.Types
+    , module Data.Vhd.Header
     , module Data.Vhd.UniqueId
     ) where
 
@@ -31,6 +32,7 @@ import Data.Vhd.Geometry
 import Data.Vhd.Node
 import Data.Vhd.Crypt
 import Data.Vhd.Types
+import Data.Vhd.Header
 import Data.Vhd.UniqueId
 import Data.Vhd.Utils
 import Data.Vhd.Time

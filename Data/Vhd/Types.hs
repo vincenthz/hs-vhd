@@ -15,21 +15,6 @@ import Data.Word
 import System.Random
 import Text.Printf
 
-data Header = Header
-    { headerCookie               :: Cookie
-    , headerDataOffset           :: PhysicalByteAddress
-    , headerTableOffset          :: PhysicalByteAddress
-    , headerVersion              :: Version
-    , headerMaxTableEntries      :: VirtualBlockCount
-    , headerBlockSize            :: BlockSize
-    , headerChecksum             :: Checksum
-    , headerParentUniqueId       :: UniqueId
-    , headerParentTimeStamp      :: VhdDiffTime
-    , headerReserved1            :: B.ByteString
-    , headerParentUnicodeName    :: ParentUnicodeName
-    , headerParentLocatorEntries :: ParentLocatorEntries
-    } deriving (Show, Eq)
-
 data Footer = Footer
     { footerCookie             :: Cookie
     , footerIsTemporaryDisk    :: Bool

@@ -41,6 +41,7 @@ Library
                      Data.Vhd.Bitmap
                      Data.Vhd.Block
                      Data.Vhd.Checksum
+                     Data.Vhd.Header
                      Data.Vhd.Node
                      Data.Vhd.Geometry
                      Data.Vhd.Serialize
