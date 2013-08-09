@@ -115,6 +115,7 @@ data CreateParameters = CreateParameters
     , createVirtualSize       :: VirtualByteCount
     } deriving (Show, Eq)
 
+defaultCreateParameters :: CreateParameters
 defaultCreateParameters = CreateParameters
     { createBlockSize         = 2 * 1024 * 1024
     , createDiskType          = DiskTypeDynamic
@@ -148,9 +149,6 @@ create filePath createParams
             { createTimeStamp = Just $ maybe nowVhdEpoch id $ createTimeStamp createParams
             , createUuid      = Just $ maybe uniqueid    id $ createUuid      createParams
             }
-    where
-        y2k :: Word64
-        y2k = 946684800 -- seconds from the unix epoch to the vhd epoch
 
 create' :: FilePath -> CreateParameters -> IO ()
 create' filePath createParams =
@@ -179,9 +177,9 @@ create' filePath createParams =
 
     where
         BlockSize bsz   = createBlockSize createParams
-        virtualSize     = createVirtualSize createParams
-        maxTableEntries = fromIntegral (virtualSize `divRoundUp` fromIntegral bsz)
-        batPadSize      = batSize - maxTableEntries * 4
+        virtSize        = createVirtualSize createParams
+
+        maxTableEntries = fromIntegral (virtSize `divRoundUp` fromIntegral bsz)
         batSize         = (maxTableEntries * 4) `roundUpToModulo` sectorLength
         footerSize      = 512
         headerSize      = 1024
@@ -195,8 +193,8 @@ create' filePath createParams =
             , footerCreatorApplication = creatorApplication "tap\0"
             , footerCreatorVersion     = if createUseBatmap createParams then Version 1 3 else Version 1 0
             , footerCreatorHostOs      = CreatorHostOsWindows
-            , footerOriginalSize       = virtualSize
-            , footerCurrentSize        = virtualSize
+            , footerOriginalSize       = virtSize
+            , footerCurrentSize        = virtSize
             , footerDiskGeometry       = diskGeometry (virtSize `div` Block.sectorLength)
             , footerDiskType           = createDiskType createParams
             , footerChecksum           = 0
@@ -248,22 +246,22 @@ readDataRange :: Vhd     -- ^ Vhd chain to read from
               -> Word64  -- ^ offset address in the VHD
               -> Word64  -- ^ number of byte to read
               -> IO BL.ByteString
-readDataRange vhd offset length
-    | offset + length > virtualSize vhd = error "cannot read data past end of VHD."
+readDataRange vhd offset len
+    | offset + len > virtualSize vhd = error "cannot read data past end of VHD."
     | otherwise = trim . BL.fromChunks <$> mapM (readDataBlock vhd) [blockFirst..blockLast]
   where
         (blockFirst,BlockByteAddress toDrop,_) = vaddrToBlock startAddr (vhdBlockSize vhd)
         (blockLast,_,_)       = vaddrToBlock endAddr (vhdBlockSize vhd)
-        trim       = BL.take (fromIntegral length) . BL.drop (fromIntegral toDrop)
+        trim       = BL.take (fromIntegral len) . BL.drop (fromIntegral toDrop)
         startAddr = VirtualByteAddress offset
-        endAddr   = VirtualByteAddress (offset + length)
+        endAddr   = VirtualByteAddress (offset + len)
 
 -- | Writes data to the given virtual address of the given VHD.
 writeDataRange :: Vhd           -- ^ Vhd chain to write to
                -> Word64        -- ^ offset address in the VHD
                -> BL.ByteString -- ^ the data to write in the VHD
                -> IO ()
-writeDataRange vhd offset content = write (VirtualByteAddress offset) content
+writeDataRange vhd iniOffset iniContent = write (VirtualByteAddress iniOffset) iniContent
   where
     write :: VirtualByteAddress -> BL.ByteString -> IO ()
     write offset content
@@ -283,11 +281,9 @@ writeDataRange vhd offset content = write (VirtualByteAddress offset) content
 
     bmap = vhdEncrypt `fmap` nodeCryptCtx node
 
-    bat       = nodeBat node
-    file      = nodeFilePath node
     node      = head $ vhdNodes vhd
     offsetMax = virtualSize vhd
-    blockSize@(BlockSize bsz) = vhdBlockSize vhd
+    blockSize = vhdBlockSize vhd
 
 -- | Reads all available data from the given virtual block of the given VHD.
 readDataBlock :: Vhd -> VirtualBlockAddress -> IO B.ByteString
@@ -322,10 +318,10 @@ unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount result
 
     copySectorsFromNodes :: BitSet BlockSectorAddress -> [(VhdNode, PhysicalSectorAddress)] -> IO ()
     copySectorsFromNodes _                []                  = return ()
-    copySectorsFromNodes sectorsRequested (nodeOffset : tail)
+    copySectorsFromNodes sectorsRequested (nodeOffset : tailNodes)
         | BitSet.isEmpty sectorsRequested = return ()
         | otherwise = do sectorsMissing <- copySectorsFromNode sectorsRequested nodeOffset
-                         copySectorsFromNodes sectorsMissing tail
+                         copySectorsFromNodes sectorsMissing tailNodes
 
     copySectorsFromNode :: BitSet BlockSectorAddress -> (VhdNode, PhysicalSectorAddress) -> IO (BitSet BlockSectorAddress)
     copySectorsFromNode sectorsRequested (node, physicalSectorOfBlock) =
