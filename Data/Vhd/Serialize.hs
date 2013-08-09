@@ -52,20 +52,6 @@ instance Serialize Footer where
         putIsSavedState       $ footerIsSavedState       f
         putFooterPadding
 
-instance Serialize BatmapHeader where
-    get = BatmapHeader
-        <$> getCookie
-        <*> getDataOffset
-        <*> getWord32be
-        <*> getVersion
-        <*> getChecksum
-    put b = do
-        putCookie     $ batmapHeaderCookie   b
-        putDataOffset $ batmapHeaderOffset   b
-        putWord32be   $ batmapHeaderSize     b
-        putVersion    $ batmapHeaderVersion  b
-        putChecksum   $ batmapHeaderChecksum b
-
 footerPaddingLength = 427
 getFooterPadding = getByteString footerPaddingLength
 putFooterPadding = putByteString $ B.replicate footerPaddingLength 0

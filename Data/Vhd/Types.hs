@@ -38,13 +38,6 @@ data Footer = Footer
 
 instance Sized Footer where
     sized _ = 512
-data BatmapHeader = BatmapHeader
-    { batmapHeaderCookie       :: Cookie
-    , batmapHeaderOffset       :: PhysicalByteAddress
-    , batmapHeaderSize         :: Word32
-    , batmapHeaderVersion      :: Version
-    , batmapHeaderChecksum     :: Checksum
-    } deriving (Show, Eq)
 
 -- | block size
 newtype BlockSize = BlockSize Word32

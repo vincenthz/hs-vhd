@@ -16,6 +16,7 @@ import Data.Storable.Endian
 import Foreign.Ptr
 import Foreign.Storable
 import Data.Vhd.Bitmap
+import Data.Vhd.Batmap
 import Data.Vhd.Types
 import Data.Vhd.Header
 import Data.Vhd.Const
@@ -36,6 +37,7 @@ hasBitmap (Bat _ _ (Just bm)) = True
 batmapSet :: VirtualBlockAddress -> Batmap -> IO ()
 batmapSet (VirtualBlockAddress n) (Batmap bitmap _) = bitmapSet bitmap (fromIntegral n)
 
+-- FIXME batmap checksum is on the batmap header, not the actual batmap
 batmapChecksum :: Batmap -> IO Checksum
 batmapChecksum (Batmap (Bitmap p) sz) = complement `fmap` foldM addByte 0 [0 .. (sz - 1)]
     where addByte acc i = (p `peekElemOff` i) >>= \w -> return (acc + fromIntegral w)
@@ -75,7 +77,7 @@ batMmap file header footer batmapHeader f =
   where
         absoluteOffset = fromIntegral (headerTableOffset header)
         offsetSize     = (absoluteOffset, fromIntegral (batSize + maybe 0 (const 512) batmapHeader + batmapSize))
-        batmapOffset   = batSize + fromIntegral sectorLength
+        batmapOffset   = batSize + sized (undefined :: BatmapHeader)
         batSize        = batGetSize header footer
         batmapSize     = maybe 0 (fromIntegral . (* sectorLength) . batmapHeaderSize) batmapHeader
 

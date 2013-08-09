@@ -18,6 +18,7 @@ import Data.Serialize (decode, encode)
 import Data.Vhd.Block
 import Data.Vhd.Header
 import Data.Vhd.Bitmap (bitmapGet)
+import Data.Vhd.Batmap
 import qualified Data.Vhd.Bat as Bat
 import Data.Vhd.Types
 import Data.Vhd.Serialize ()

@@ -37,6 +37,7 @@ import Data.Vhd.UniqueId
 import Data.Vhd.Utils
 import Data.Vhd.Time
 import Data.Vhd.Const
+import Data.Vhd.Batmap
 import Data.Word
 import Foreign.Ptr
 import Prelude hiding (subtract)
@@ -165,13 +166,7 @@ create' filePath createParams =
         when (createUseBatmap createParams) $ do
             hAlign handle sectorLength
             headerPos <- hTell handle
-            B.hPut handle $ encode $ BatmapHeader
-                { batmapHeaderCookie   = cookie "tdbatmap"
-                , batmapHeaderOffset   = fromIntegral (headerPos + sectorLength)
-                , batmapHeaderSize     = (maxTableEntries `div` 8) `divRoundUp` sectorLength
-                , batmapHeaderVersion  = Version 1 2
-                , batmapHeaderChecksum = 0xffffffff
-                }
+            B.hPut handle $ encode $ batmapHeader headerPos
             hAlign handle sectorLength
             B.hPut handle $ B.replicate (fromIntegral (maxTableEntries `div` 8)) 0x0
         hAlign handle sectorLength
@@ -217,6 +212,17 @@ create' filePath createParams =
             , headerReserved1            = B.replicate 4 0
             , headerParentUnicodeName    = fromMaybe (parentUnicodeName "") (createParentUnicodeName createParams)
             , headerParentLocatorEntries = ParentLocatorEntries $ replicate 8 nullParentLocatorEntry
+            }
+
+        batmapHeader headerPos = BatmapHeader
+            { batmapHeaderCookie   = cookie "tdbatmap"
+            , batmapHeaderOffset   = fromIntegral (headerPos + sectorLength)
+            , batmapHeaderSize     = (maxTableEntries `div` 8) `divRoundUp` sectorLength
+            , batmapHeaderVersion  = Version 1 2
+            , batmapHeaderChecksum = 0
+            , batmapHeaderMarker   = 0
+            , batmapHeaderKeyHash  = KeyHash Nothing
+            , batmapHeaderReserved = B.replicate 418 0
             }
 
 snapshot :: Vhd -> FilePath -> IO ()
