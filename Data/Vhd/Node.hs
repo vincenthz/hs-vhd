@@ -137,8 +137,4 @@ iterateBlockSectors vhd vba f = do
     mpsa <- Bat.lookupBlock (nodeBat vhd) vba
     case mpsa of
         Nothing  -> return ()
-        Just psa -> withMappedBlock vhd psa vba iterateBlockBitmap
-    where iterateBlockBitmap block =
-              forM_ [0..(nbSectors-1)] $ \sector@(BlockSectorAddress bsa) ->
-                  bitmapGet (bitmapOfBlock block) (fromIntegral bsa) >>= f block sector
-            where nbSectors = sectorPerBlock block
+        Just psa -> withMappedBlock vhd psa vba (\block -> iterateSectors block (f block))
