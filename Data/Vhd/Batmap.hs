@@ -46,8 +46,8 @@ instance Serialize BatmapHeader where
 
 instance Serialize KeyHash where
     get = do
-        cookie <- getWord8
-        if cookie /= 1
+        c <- getWord8
+        if c /= 1
             then return $ KeyHash Nothing
             else do nonce <- getByteString 32
                     hash  <- getByteString 32
