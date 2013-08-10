@@ -1,9 +1,9 @@
 module Data.Vhd.Bat
     ( Bat (..)
     , batGetSize
+    , hasBitmap
     , containsBlock
     , lookupBlock
-    , hasBitmap
     , batWrite
     , batMmap
     , batIterate
@@ -23,16 +23,18 @@ import Data.Vhd.Const
 import Data.Vhd.Utils
 import System.IO.MMap
 
-data Bat      = Bat BatStart BatEnd (Maybe Batmap)
-type BatStart = Ptr PhysicalSectorAddress
-type BatEnd   = Ptr PhysicalSectorAddress
+data Bat      = Bat
+    { batStart  :: Ptr PhysicalSectorAddress
+    , batEnd    :: Ptr PhysicalSectorAddress
+    , batBitmap :: Maybe BatmapHeader
+    }
+
 data Batmap   = Batmap Bitmap Int
 
 emptyEntry :: PhysicalSectorAddress
 emptyEntry = 0xffffffff
 
-hasBitmap (Bat _ _ (Nothing)) = False
-hasBitmap (Bat _ _ (Just bm)) = True
+hasBitmap = maybe False (const True) . batBitmap
 
 {-
 batmapSet :: VirtualBlockAddress -> Batmap -> IO ()
@@ -73,12 +75,12 @@ batWrite (Bat bptr _ bmap) vba@(VirtualBlockAddress n) v =
 batMmap :: FilePath -> Header -> Footer -> Maybe BatmapHeader -> (Bat -> IO a) -> IO a
 batMmap file header footer batmapHeader f =
     mmapWithFilePtr file ReadWrite (Just offsetSize) $ \(ptr, sz) ->
-        let batmap    = Batmap (Bitmap (castPtr (ptr `plusPtr` batmapOffset))) batmapSize in
+        --let batmap    = Batmap (Bitmap (castPtr (ptr `plusPtr` batmapOffset))) batmapSize in
         let batendPtr = ptr `plusPtr` batSize in
-        f . Bat (castPtr ptr) batendPtr $ fmap (const batmap) batmapHeader
+        f $ Bat (castPtr ptr) batendPtr batmapHeader -- $ fmap (const batmap) batmapHeader
   where
         absoluteOffset = fromIntegral (headerTableOffset header)
-        offsetSize     = (absoluteOffset, fromIntegral (batSize + maybe 0 (const 512) batmapHeader + batmapSize))
+        offsetSize     = (absoluteOffset, fromIntegral (batSize + maybe 0 sized batmapHeader + batmapSize))
         batmapOffset   = batSize + sized (undefined :: BatmapHeader)
         batSize        = batGetSize header footer
         batmapSize     = maybe 0 (fromIntegral . (* sectorLength) . batmapHeaderSize) batmapHeader
@@ -86,6 +88,7 @@ batMmap file header footer batmapHeader f =
 batIterate :: Bat -> VirtualBlockAddress -> (VirtualBlockAddress -> Maybe PhysicalSectorAddress -> IO ()) -> IO ()
 batIterate bat nb f = forM_ [0 .. (nb - 1)] (\i -> lookupBlock bat i >>= \n -> f i n)
 
+{-
 -- | Updates the checksum in the batmap, if the batmap exists.
 batUpdateChecksum :: Bat -> IO ()
 batUpdateChecksum (Bat _ _        Nothing)       = return ()
@@ -93,3 +96,4 @@ batUpdateChecksum (Bat _ endptr   (Just batmap)) = do
     let batmapChecksumPtr = endptr `plusPtr` (8+8+4+4)
     checksum <- batmapChecksum batmap
     pokeBE batmapChecksumPtr checksum
+-}
