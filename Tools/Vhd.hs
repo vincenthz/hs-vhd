@@ -36,28 +36,38 @@ cmdConvert _ [fileRaw, fileVhd, size] = convert =<< rawSizeBytes where
             withVhd fileVhd $ \vhd -> BL.readFile fileRaw >>= writeDataRange vhd 0
 cmdConvert _ _ = error "usage: convert <raw file> <vhd file> <size MiB>"
 
-cmdTranslate opts [fileVhd, resumeFile] = do
-    let isDecrypt = Decrypt `elem` opts
-
-    withVhdNode fileVhd $ \vhd -> do
-        let (dbmap,_) = getVhdBlockMapper vhd
-        iterateBlocks vhd $ \block ->
-            Block.iterateSectors block $ \bsa isAllocated -> do
-                --putStrLn ("blockAddr: " ++ show (Block.blockAddr block) ++ " sector " ++ show bsa ++ " is allocated: " ++ show isAllocated)
-                case isAllocated of
-                    True -> do r <- Block.readSector dbmap block bsa
-                               case r of
-                                   Nothing -> error "inconsistency: sector should be allocated"
-                                   Just b  -> Block.writeSector writeBmap block bsa b
-                    False -> return ()
-        batmapHeaderChange vhd changeBatmapHdrF
-        -- FIXME: set new hash if available
-        return ()
+cmdTranslate opts [fileVhd, resumeFile]
+    | isEncrypt && isDecrypt = error "encryption and decryption are exclusive option"
+    | isEncrypt == False && isDecrypt == False = error "need either to encrypt or decrypt. doing nothing"
+    | otherwise = do
+        (writeBmap, changeBatmapHdrF) <-
+            case hasEncryptFile of
+                Just file -> do
+                    key  <- openCryptKey file
+                    let bmap  = maybe (error "invalid crypt key") vhdEncrypt $ vhdCryptInit key
+                        nonce = B.replicate 32 0
+                    return (Just bmap, batmapSetKeyHash nonce (calculateHash nonce key))
+                Nothing -> return (Nothing, batmapClearKeyHash)
+            
+        withVhdNode fileVhd $ \vhd -> do
+            let (dbmap,_) = getVhdBlockMapper vhd
+            iterateBlocks vhd $ \block ->
+                Block.iterateSectors block $ \bsa isAllocated -> do
+                    --putStrLn ("blockAddr: " ++ show (Block.blockAddr block) ++ " sector " ++ show bsa ++ " is allocated: " ++ show isAllocated)
+                    case isAllocated of
+                        True -> do r <- Block.readSector dbmap block bsa
+                                   case r of
+                                       Nothing -> error "inconsistency: sector should be allocated"
+                                       Just b  -> Block.writeSector writeBmap block bsa b
+                        False -> return ()
+            batmapHeaderChange vhd changeBatmapHdrF
+            -- FIXME: set new hash if available
+            return ()
   where isDecrypt = Decrypt `elem` opts
-        writeBmap | isDecrypt = Nothing
-                  | otherwise = error "unknown writing translation"
-        changeBatmapHdrF | isDecrypt = batmapClearKeyHash
-                         | otherwise = error "unknown batmap mapping option"
+        isEncrypt = maybe False (const True) hasEncryptFile
+        hasEncryptFile = foldl (\acc o -> case o of
+                                    Encrypt f -> Just f
+                                    otherwise -> acc) Nothing opts
 
 cmdTranslate _ _ = error "usage: translate <vhd file> <resume file>"
 
@@ -194,6 +204,7 @@ data OptFlag =
     | Size String
     | DumpBat
     | Decrypt
+    | Encrypt String
     deriving (Show,Eq)
 
 knownCommands :: [ (String, [String] -> IO ()) ]
@@ -205,7 +216,7 @@ knownCommands =
     , ("set-uuid", wrapOpt cmdPropSetUuid [helpOpt])
     , ("read"    , wrapOpt cmdRead [helpOpt,dumpBatOpt])
     , ("snapshot", wrapOpt cmdSnapshot [helpOpt])
-    , ("translate", wrapOpt cmdTranslate [helpOpt,decryptOpt])
+    , ("translate", wrapOpt cmdTranslate [helpOpt,decryptOpt,encryptOpt])
     , ("help"    , wrapOpt cmdHelp [])
     ]
   where wrapOpt f opts xs =
@@ -218,6 +229,7 @@ knownCommands =
         sizeOpt   = Option ['z'] ["size"] (ReqArg Size "size") "size in bytes"
         dumpBatOpt= Option []    ["dump-bat"] (NoArg DumpBat) "dump bat allocation"
         decryptOpt= Option []    ["decrypt"] (NoArg Decrypt) "decrypt the vhd"
+        encryptOpt= Option []    ["encrypt"] (ReqArg Encrypt "file") "encrypt the vhd using a key specified from the file"
 
 usage msg = do
     maybe (return ()) putStrLn msg
