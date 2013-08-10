@@ -73,19 +73,19 @@ pointerOfData (Data ptr) = ptr
 
 -- | Maps into memory a block of the given size, at the given file path and sector address.
 withBlock :: FilePath -> BlockSize -> VirtualBlockAddress -> PhysicalSectorAddress -> (Block -> IO a) -> IO a
-withBlock file blockSize@(BlockSize sz) vba sectorOffset f =
-    mmapWithFilePtr file ReadWrite (Just (offset, length)) $ \(ptr, sz) ->
-        f (Block blockSize vba $ castPtr ptr)
+withBlock file blocksz@(BlockSize bsz) vba sectorOffset f =
+    mmapWithFilePtr file ReadWrite (Just (offset, len)) $ \(ptr, _) ->
+        f (Block blocksz vba $ castPtr ptr)
   where
-        offset = (fromIntegral sectorOffset) * (fromIntegral sectorLength)
-        length = (fromIntegral sz) + (fromIntegral $ bitmapSizeOfBlockSize blockSize)
+        offset = (fromIntegral sectorOffset) * sectorLength
+        len = (fromIntegral bsz) + (fromIntegral $ bitmapSizeOfBlockSize blocksz)
 
 -- | Reads into memory the contents of the bitmap for the specified block.
 readBitmap :: Block -> IO ByteString
-readBitmap block = B.create (fromIntegral length) create
+readBitmap block = B.create (fromIntegral len) create
   where
-        length = bitmapSizeOfBlock block
-        create byteStringPtr = B.memcpy target source (fromIntegral length) where
+        len = bitmapSizeOfBlock block
+        create byteStringPtr = B.memcpy target source (fromIntegral len) where
             source = case bitmapOfBlock block of Bitmap b -> b
             target = castPtr byteStringPtr
 
@@ -96,8 +96,8 @@ readData blockMapper block = readDataRange blockMapper block 0 sz
 
 -- | Reads a range of data from within the specified block.
 readDataRange :: Maybe BlockDataMapper -> Block -> BlockByteAddress -> Word32 -> IO ByteString
-readDataRange blockDataMapper block offset length = B.create (fromIntegral length) $
-    unsafeReadDataRange blockDataMapper block offset length
+readDataRange blockDataMapper block offset len = B.create (fromIntegral len) $
+    unsafeReadDataRange blockDataMapper block offset len
 
 -- | Unsafely reads all available data from the specified block.
 unsafeReadData :: Maybe BlockDataMapper -> Block -> Ptr Word8 -> IO ()
@@ -112,13 +112,13 @@ unsafeReadDataRange :: Maybe BlockDataMapper -- ^ an optional data mapper functi
                     -> Word32                -- ^ number of bytes
                     -> Ptr Word8             -- ^ output buffer
                     -> IO ()
-unsafeReadDataRange blockDataMapper block bba@(BlockByteAddress offset) length target =
+unsafeReadDataRange blockDataMapper block bba@(BlockByteAddress offset) len target =
     case blockDataMapper of
-        Nothing   -> B.memcpy target source (fromIntegral length)
+        Nothing   -> B.memcpy target source (fromIntegral len)
         Just bmap -> do fptr <- newForeignPtr_ source
-                        let mappedSource = bmap (blockAddr block) bba $ B.fromForeignPtr fptr 0 (fromIntegral length)
+                        let mappedSource = bmap (blockAddr block) bba $ B.fromForeignPtr fptr 0 (fromIntegral len)
                         withBytePtr mappedSource $ \src ->
-                            B.memcpy target src (fromIntegral length) 
+                            B.memcpy target src (fromIntegral len)
   where
         source = (pointerOfData $ dataOfBlock block) `plusPtr` (fromIntegral offset)
 
@@ -132,13 +132,13 @@ writeDataRange blockMapper block bba@(BlockByteAddress offset) content = do
     -- sectors need to be prepared for differential disk if the bitmap was clear before,
     -- at the moment assumption is it's 0ed
     bitmapSetRange bitmap (fromIntegral sectorStart) (fromIntegral sectorEnd)
-    B.unsafeUseAsCString (maybe id (\bm -> bm (blockAddr block) bba) blockMapper $ content) (\source -> B.memcpy target (castPtr source) length)
+    B.unsafeUseAsCString (maybe id (\bm -> bm (blockAddr block) bba) blockMapper $ content) (\source -> B.memcpy target (castPtr source) len)
   where
-        length      = fromIntegral $ B.length content
+        len         = fromIntegral $ B.length content
         bitmap      = bitmapOfBlock block
         target      = (pointerOfData $ dataOfBlock block) `plusPtr` (fromIntegral offset)
-        sectorStart = fromIntegral offset `div` sectorLength
-        sectorEnd   = fromIntegral (fromIntegral offset + B.length content) `div` sectorLength
+        sectorStart = offset `div` sectorLength
+        sectorEnd   = (fromIntegral offset + B.length content) `div` sectorLength
 
 iterateSectors :: Block
                -> (BlockSectorAddress -> Bool -> IO ())
