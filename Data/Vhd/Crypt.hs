@@ -15,7 +15,7 @@ import Data.List (isSuffixOf)
 import Data.Bits (shiftR)
 import Data.Vhd.Types (VirtualBlockAddress(..), BlockByteAddress(..))
 import Crypto.Hash.SHA256 (hash)
-import Crypto.Cipher.AES
+import Crypto.Cipher.AES (AES, initAES, encryptXTS, decryptXTS)
 import System.FilePath
 import System.Directory
 import qualified Data.ByteString as B
