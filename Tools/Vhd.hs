@@ -110,9 +110,10 @@ cmdRead opts [file] = withVhdNode file $ \node -> do
         , ("timestamp        ", showTimestamp $ footerTimeStamp ftr)
         ]
     let bat = nodeBat node
-    case batBitmap bat of
+    case batBatmap bat of
         Nothing        -> putStrLn "* no batmap"
-        Just batmapHdr -> do
+        Just batmapHdrMvar -> do
+            batmapHdr <- readMVar batmapHdrMvar
             putStrLn "BATMAP:"
             mapM_ (\(f, s) -> putStrLn ("  " ++ f ++ " : " ++ s))
                 [ ("version         ", show $ headerVersion hdr)
