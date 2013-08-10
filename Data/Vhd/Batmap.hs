@@ -11,6 +11,7 @@ import Data.Serialize
 import Data.Word
 import Data.Vhd.Serialize
 import Data.Vhd.Types
+import Data.Vhd.Checksum
 
 data BatmapHeader = BatmapHeader
     { batmapHeaderCookie       :: Cookie
@@ -32,7 +33,7 @@ instance Serialize BatmapHeader where
         <*> getDataOffset
         <*> getWord32be
         <*> getVersion
-        <*> getChecksum
+        <*> get
         <*> getWord8
         <*> get
         <*> getByteString 418
@@ -41,7 +42,7 @@ instance Serialize BatmapHeader where
         putDataOffset $ batmapHeaderOffset   b
         putWord32be   $ batmapHeaderSize     b
         putVersion    $ batmapHeaderVersion  b
-        putChecksum   $ batmapHeaderChecksum b
+        put           $ batmapHeaderChecksum b
         putWord8      $ batmapHeaderMarker   b
         put           $ batmapHeaderKeyHash  b
         putByteString $ batmapHeaderReserved b

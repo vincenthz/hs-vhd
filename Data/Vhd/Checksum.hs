@@ -1,43 +1,47 @@
 module Data.Vhd.Checksum
-    ( adjustFooterChecksum
-    , adjustHeaderChecksum
-    , verifyFooterChecksum
-    , verifyHeaderChecksum
+    ( Checksum(..)
+    , CheckSumable(..)
+    , checksumCalculate
+    , verifyChecksum
+    , adjustChecksum
     ) where
 
 import Data.Bits
+import Data.Monoid
 import qualified Data.ByteString as B
-import Data.Vhd.Serialize ()
 import Data.Serialize
-import Data.Vhd.Types
-import Data.Vhd.Header
-import Data.Vhd.Footer
 import Data.Word
 
-plus :: Checksum -> Word8 -> Checksum
-plus a b = a + fromIntegral b
+newtype Checksum = Checksum Word32
+    deriving (Show,Eq)
 
-getHeaderChecksum :: Header -> Checksum
-getHeaderChecksum header = complement $ B.foldl' plus 0 headerData
-    where
-        headerData = encode $ header { headerChecksum = 0 }
+instance Serialize Checksum where
+    put (Checksum v) = putWord32be v
+    get = Checksum `fmap` getWord32be
 
-getFooterChecksum :: Footer -> Checksum
-getFooterChecksum footer = complement $ B.foldl' plus 0 footerData
-    where footerData = encode $ footer { footerChecksum = 0 }
+instance Monoid Checksum where
+    mempty = Checksum 0
+    mappend (Checksum a) (Checksum b) = Checksum (a+b)
 
-adjustFooterChecksum :: Footer -> Footer
-adjustFooterChecksum f = f { footerChecksum = checksum }
-    where checksum = getFooterChecksum f
+class Serialize a => CheckSumable a where
+    calculateChecksum :: a -> Checksum
+    getChecksum       :: a -> Checksum
+    setChecksum       :: Checksum -> a -> a
 
-adjustHeaderChecksum :: Header -> Header
-adjustHeaderChecksum h = h { headerChecksum = checksum }
-    where checksum = getHeaderChecksum h
+adjustChecksum :: CheckSumable a => a -> a
+adjustChecksum a = setChecksum checksum a
+  where checksum = calculateChecksum a
 
-verifyFooterChecksum :: Footer -> Bool
-verifyFooterChecksum f = footerChecksum f == checksum
-    where checksum = getFooterChecksum f
+verifyChecksum :: CheckSumable a => a -> Bool
+verifyChecksum a = expected == got
+  where expected = getChecksum a
+        got      = calculateChecksum a
 
-verifyHeaderChecksum :: Header -> Bool
-verifyHeaderChecksum h = headerChecksum h == checksum
-    where checksum = getHeaderChecksum h
+checksumPlus :: Checksum -> Word8 -> Checksum
+checksumPlus (Checksum a) b = Checksum (a + fromIntegral b)
+
+checksumComplement :: Checksum -> Checksum
+checksumComplement (Checksum s) = Checksum (complement s)
+
+checksumCalculate :: B.ByteString -> Checksum
+checksumCalculate = checksumComplement . B.foldl' checksumPlus (Checksum 0)

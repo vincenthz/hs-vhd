@@ -35,7 +35,7 @@ writeFooter filePath footer = do
         hSeek handle SeekFromEnd 512
         B.hPut handle footerBs
   where
-    footerBs = encode $ adjustFooterChecksum footer
+    footerBs = encode $ adjustChecksum footer
 
 -- | re-write an header in a VHD file
 writeHeader :: FilePath -> Header -> IO ()
@@ -44,4 +44,4 @@ writeHeader filePath header = do
         hSeek handle AbsoluteSeek 512
         B.hPut handle headerBs
   where
-    headerBs = encode $ adjustHeaderChecksum header
+    headerBs = encode $ adjustChecksum header

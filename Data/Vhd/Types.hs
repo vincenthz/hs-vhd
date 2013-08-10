@@ -35,7 +35,6 @@ newtype VirtualByteAddress = VirtualByteAddress Word64
 type DiskGeometryCylinders       = Word16
 type DiskGeometryHeads           = Word8
 type DiskGeometrySectorsPerTrack = Word8
-type Checksum                    = Word32
 
 type PhysicalByteAddress         = Word64
 type PhysicalByteCount           = Word64

@@ -22,10 +22,6 @@ getBlockSize :: Get BlockSize
 getBlockSize       = BlockSize <$> getWord32be
 putBlockSize :: BlockSize -> Put
 putBlockSize (BlockSize sz) = putWord32be sz
-getChecksum :: Get Checksum
-getChecksum        = getWord32be
-putChecksum :: Checksum -> Put
-putChecksum        = putWord32be
 getCurrentSize     = getWord64be
 putCurrentSize     = putWord64be
 getDataOffset      = getWord64be

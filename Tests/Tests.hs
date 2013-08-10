@@ -7,12 +7,14 @@ import Control.Monad
 
 import qualified Data.ByteString as B
 import Data.Serialize
+import Data.Vhd.Checksum
 import Data.Vhd.Types
 import Data.Vhd.Header
 import Data.Vhd.Footer
 import Data.Vhd.UniqueId
 import Data.Vhd.Serialize
 import Data.Vhd.Time
+import Data.Monoid
 
 instance Arbitrary Version where
     arbitrary = Version <$> arbitrary <*> arbitrary
@@ -64,6 +66,9 @@ instance Arbitrary Header where
         <*> (pure $ B.replicate 4 0)
         <*> arbitrary
         <*> arbitrary
+
+instance Arbitrary Checksum where
+    arbitrary = return mempty
 
 instance Arbitrary Footer where
     arbitrary = Footer

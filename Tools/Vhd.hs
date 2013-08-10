@@ -125,7 +125,7 @@ cmdRead opts [file] = withVhdNode file $ \node -> do
         , ("version          ", show $ headerVersion hdr)
         , ("max-table-entries", show $ headerMaxTableEntries hdr)
         , ("block-size       ", showBlockSize $ headerBlockSize hdr)
-        , ("header-checksum  ", showChecksum (headerChecksum hdr) (verifyHeaderChecksum hdr))
+        , ("header-checksum  ", showChecksum (headerChecksum hdr) (verifyChecksum hdr))
         , ("parent-uuid      ", show $ headerParentUniqueId hdr)
         , ("parent-filepath  ", show $ headerParentUnicodeName hdr)
         , ("parent-timestamp ", showTimestamp $ headerParentTimeStamp hdr)
@@ -142,7 +142,7 @@ cmdRead opts [file] = withVhdNode file $ \node -> do
         , ("original-size    ", showSize $ footerOriginalSize ftr)
         , ("current-size     ", showSize $ footerOriginalSize ftr)
         , ("type             ", show $ footerDiskType ftr)
-        , ("footer-checksum  ", showChecksum (footerChecksum ftr) (verifyFooterChecksum ftr))
+        , ("footer-checksum  ", showChecksum (footerChecksum ftr) (verifyChecksum ftr))
         , ("uuid             ", show $ footerUniqueId ftr)
         , ("timestamp        ", showTimestamp $ footerTimeStamp ftr)
         ]
@@ -181,7 +181,7 @@ showSize i
     | i < (1024^3) = printf "%d MiB" (i `div` (1024^2))
     | otherwise    = printf "%d GiB" (i `div` (1024^3))
 
-showChecksum checksum isValid =
+showChecksum (Checksum checksum) isValid =
     printf "%08x (%s)" checksum (if isValid then "valid" else "invalid")
 
 showTimestamp timestamp@(VhdDiffTime r) =

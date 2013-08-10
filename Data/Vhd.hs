@@ -13,6 +13,7 @@ module Data.Vhd
     , withVhd
     , module Data.Vhd.Types
     , module Data.Vhd.Header
+    , module Data.Vhd.Checksum
     , module Data.Vhd.Footer
     , module Data.Vhd.UniqueId
     ) where
@@ -25,6 +26,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Internal as B
 import Data.Maybe
 import Data.Serialize
+import Data.Monoid (mempty)
 import Data.Vhd.Bat
 import Data.Vhd.Block (Block, BlockDataMapper)
 import qualified Data.Vhd.Block as Block
@@ -182,7 +184,7 @@ create' filePath createParams =
         footerSize      = 512
         headerSize      = 1024
 
-        footer = adjustFooterChecksum $ Footer
+        footer = adjustChecksum $ Footer
             { footerCookie             = cookie "conectix"
             , footerIsTemporaryDisk    = False
             , footerFormatVersion      = Version 1 0
@@ -195,19 +197,19 @@ create' filePath createParams =
             , footerCurrentSize        = virtSize
             , footerDiskGeometry       = diskGeometry (virtSize `div` Block.sectorLength)
             , footerDiskType           = createDiskType createParams
-            , footerChecksum           = 0
+            , footerChecksum           = mempty
             , footerUniqueId           = fromJust $ createUuid createParams
             , footerIsSavedState       = False
             }
 
-        header = adjustHeaderChecksum $ Header
+        header = adjustChecksum $ Header
             { headerCookie               = cookie "cxsparse"
             , headerDataOffset           = 0xffffffffffffffff
             , headerTableOffset          = footerSize + headerSize
             , headerVersion              = Version 1 0
             , headerMaxTableEntries      = maxTableEntries
             , headerBlockSize            = createBlockSize createParams
-            , headerChecksum             = 0
+            , headerChecksum             = mempty
             , headerParentUniqueId       = fromMaybe (uniqueId $ B.replicate 16 0) (createParentUniqueId createParams)
             , headerParentTimeStamp      = fromMaybe (VhdDiffTime 0) (createParentTimeStamp createParams)
             , headerReserved1            = B.replicate 4 0
@@ -220,7 +222,7 @@ create' filePath createParams =
             , batmapHeaderOffset   = fromIntegral (headerPos + sectorLength)
             , batmapHeaderSize     = (maxTableEntries `div` 8) `divRoundUp` sectorLength
             , batmapHeaderVersion  = Version 1 2
-            , batmapHeaderChecksum = 0
+            , batmapHeaderChecksum = mempty
             , batmapHeaderMarker   = 0
             , batmapHeaderKeyHash  = KeyHash Nothing
             , batmapHeaderReserved = B.replicate 418 0

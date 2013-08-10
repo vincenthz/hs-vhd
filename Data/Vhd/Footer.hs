@@ -6,10 +6,12 @@ import Control.Applicative
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import Data.Serialize
+import Data.Monoid
 import Data.Vhd.Types
 import Data.Vhd.Serialize
 import Data.Vhd.UniqueId
 import Data.Vhd.Time
+import Data.Vhd.Checksum
 
 data Footer = Footer
     { footerCookie             :: Cookie
@@ -32,6 +34,11 @@ data Footer = Footer
 instance Sized Footer where
     sized _ = 512
 
+instance CheckSumable Footer where
+    getChecksum = footerChecksum
+    setChecksum v footer = footer { footerChecksum = v }
+    calculateChecksum footer = checksumCalculate $ encode $ footer { footerChecksum = mempty }
+
 instance Serialize Footer where
     get = Footer
         <$> getCookie
@@ -46,7 +53,7 @@ instance Serialize Footer where
         <*> getCurrentSize
         <*> getDiskGeometry
         <*> getDiskType
-        <*> getChecksum
+        <*> get
         <*> getUniqueId
         <*> getIsSavedState
         <*  getFooterPadding
@@ -63,7 +70,7 @@ instance Serialize Footer where
         putCurrentSize        $ footerCurrentSize        f
         putDiskGeometry       $ footerDiskGeometry       f
         putDiskType           $ footerDiskType           f
-        putChecksum           $ footerChecksum           f
+        put                   $ footerChecksum           f
         putUniqueId           $ footerUniqueId           f
         putIsSavedState       $ footerIsSavedState       f
         putFooterPadding
