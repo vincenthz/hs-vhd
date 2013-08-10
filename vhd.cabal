@@ -38,11 +38,13 @@ Library
   Other-modules:     Data.BitSet
                      Data.Range
                      Data.Vhd.Bat
+                     Data.Vhd.Batmap
                      Data.Vhd.Crypt
                      Data.Vhd.Bitmap
                      Data.Vhd.Block
                      Data.Vhd.Checksum
                      Data.Vhd.Header
+                     Data.Vhd.Footer
                      Data.Vhd.Node
                      Data.Vhd.Geometry
                      Data.Vhd.Serialize

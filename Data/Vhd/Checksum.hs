@@ -11,6 +11,7 @@ import Data.Vhd.Serialize ()
 import Data.Serialize
 import Data.Vhd.Types
 import Data.Vhd.Header
+import Data.Vhd.Footer
 import Data.Word
 
 plus :: Checksum -> Word8 -> Checksum

@@ -78,10 +78,10 @@ binaryOp f (BitSet b1) (BitSet b2) =
     BitSet $ byteStringPackZipWith f b1' b2'
   where (b1', b2') = byteStringsPad b1 b2
 
+byteStringBits :: B.ByteString -> [Bool]
 byteStringBits byteString = do
     word <- B.unpack byteString
-    bit <- word8Bits word
-    return bit
+    word8Bits word
 
 byteStringPackZipWith :: (Word8 -> Word8 -> Word8) -> B.ByteString -> B.ByteString -> B.ByteString
 byteStringPackZipWith = ((B.pack .) .) . B.zipWith
@@ -91,15 +91,6 @@ byteStringsPad b1 b2 =
     if length1 < length2
         then (B.append b1 (B.replicate (length2 - length1) 0), b2)
         else (b1, B.append b2 (B.replicate (length1 - length2) 0))
-    where
-        length1 = B.length b1
-        length2 = B.length b2
-
-byteStringsContract :: B.ByteString -> B.ByteString -> (B.ByteString, B.ByteString)
-byteStringsContract b1 b2 =
-    if length1 < length2
-        then (b1, B.take length1 b2)
-        else (B.take length2 b1, b2)
     where
         length1 = B.length b1
         length2 = B.length b2

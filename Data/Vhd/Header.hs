@@ -4,6 +4,7 @@ module Data.Vhd.Header
 
 import Control.Applicative
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
 import Data.Serialize
 import Data.Vhd.Types
 import Data.Vhd.Serialize
@@ -24,6 +25,9 @@ data Header = Header
     , headerParentUnicodeName    :: ParentUnicodeName
     , headerParentLocatorEntries :: ParentLocatorEntries
     } deriving (Show, Eq)
+
+instance Sized Header where
+    sized _ = 1024
 
 instance Serialize Header where
     get = Header
@@ -55,5 +59,9 @@ instance Serialize Header where
         put $ headerParentLocatorEntries h
         putHeaderPadding
 
-instance Sized Header where
-    sized _ = 1024
+headerPaddingLength :: Int
+headerPaddingLength = 256
+getHeaderPadding :: Get ()
+getHeaderPadding = skip headerPaddingLength
+putHeaderPadding :: Put
+putHeaderPadding = putByteString $ B.replicate headerPaddingLength 0

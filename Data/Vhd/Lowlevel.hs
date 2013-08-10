@@ -12,7 +12,7 @@ import qualified Data.ByteString as B
 import Data.Serialize
 import Data.Vhd.Checksum
 import Data.Vhd.Header
-import Data.Vhd.Types
+import Data.Vhd.Footer
 import Prelude hiding (subtract)
 import System.IO
 

@@ -2,42 +2,14 @@
 module Data.Vhd.Types where
 
 import Control.Exception
-import Control.Monad
-import Data.Char
 import qualified Data.ByteString as B
-import Data.List
 import qualified Data.Text as T
-import Data.Vhd.Time
 import Data.Vhd.Const
-import Data.Vhd.UniqueId
 import Data.Text.Encoding
 import Data.Word
-import System.Random
-import Text.Printf
 
 class Sized a where
     sized :: Num n => a -> n
-
-data Footer = Footer
-    { footerCookie             :: Cookie
-    , footerIsTemporaryDisk    :: Bool
-    , footerFormatVersion      :: Version
-    , footerDataOffset         :: PhysicalByteAddress
-    , footerTimeStamp          :: VhdDiffTime
-    , footerCreatorApplication :: CreatorApplication
-    , footerCreatorVersion     :: Version
-    , footerCreatorHostOs      :: CreatorHostOs
-    , footerOriginalSize       :: VirtualByteCount
-    , footerCurrentSize        :: VirtualByteCount
-    , footerDiskGeometry       :: DiskGeometry
-    , footerDiskType           :: DiskType
-    , footerChecksum           :: Checksum
-    , footerUniqueId           :: UniqueId
-    , footerIsSavedState       :: Bool
-    } deriving (Show, Eq)
-
-instance Sized Footer where
-    sized _ = 512
 
 -- | block size
 newtype BlockSize = BlockSize Word32
@@ -120,16 +92,26 @@ data ParentLocatorEntry = ParentLocatorEntry
     , locatorDataOffset :: Word64
     } deriving (Show, Eq)
 
+nullParentLocatorEntry :: ParentLocatorEntry
 nullParentLocatorEntry = ParentLocatorEntry 0 0 0 0
 
 newtype ParentUnicodeName    = ParentUnicodeName  String       deriving (Show, Eq)
 
 newtype ParentLocatorEntries = ParentLocatorEntries [ParentLocatorEntry] deriving (Show, Eq)
 
+-- | smart constructor for Cookie
+cookie :: B.ByteString -> Cookie
 cookie               c = assert (B.length c ==   8) $ Cookie               c
+
+-- | smart constructor for CreatorApplication
+creatorApplication :: B.ByteString -> CreatorApplication
 creatorApplication   a = assert (B.length a ==   4) $ CreatorApplication   a
+
+-- | smart constructor for ParentLocatorEntries
+parentLocatorEntries :: [ParentLocatorEntry] -> ParentLocatorEntries
 parentLocatorEntries e = assert (  length e ==   8) $ ParentLocatorEntries e
 
+parentUnicodeName :: [Char] -> ParentUnicodeName
 parentUnicodeName n
     | encodedLength > 512 = error "parent unicode name length must be <= 512 bytes"
     | otherwise           = ParentUnicodeName n

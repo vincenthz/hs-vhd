@@ -12,7 +12,6 @@ module Data.Range
     ) where
 
 import Control.Exception
-import Data.Word
 import Prelude hiding (length, minimum, maximum)
 
 data Range a = Range a a

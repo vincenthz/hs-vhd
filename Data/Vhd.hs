@@ -13,6 +13,7 @@ module Data.Vhd
     , withVhd
     , module Data.Vhd.Types
     , module Data.Vhd.Header
+    , module Data.Vhd.Footer
     , module Data.Vhd.UniqueId
     ) where
 
@@ -32,6 +33,7 @@ import Data.Vhd.Geometry
 import Data.Vhd.Node
 import Data.Vhd.Types
 import Data.Vhd.Header
+import Data.Vhd.Footer
 import Data.Vhd.UniqueId
 import Data.Vhd.Utils
 import Data.Vhd.Time

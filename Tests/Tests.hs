@@ -9,6 +9,7 @@ import qualified Data.ByteString as B
 import Data.Serialize
 import Data.Vhd.Types
 import Data.Vhd.Header
+import Data.Vhd.Footer
 import Data.Vhd.UniqueId
 import Data.Vhd.Serialize
 import Data.Vhd.Time

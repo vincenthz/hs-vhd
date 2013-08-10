@@ -16,6 +16,7 @@ import Text.Printf
 newtype UniqueId = UniqueId B.ByteString deriving (Eq)
 
 -- | smart constructor for uniqueId
+uniqueId :: B.ByteString -> UniqueId
 uniqueId i = assert (B.length i ==  16) $ UniqueId             i
 
 instance Byteable UniqueId where
@@ -46,6 +47,7 @@ ofString s
 
         unhex []         = []
         unhex (v1:v2:xs) = fromIntegral (digitToInt v1 * 16 + digitToInt v2) : unhex xs
+        unhex _          = error "internal error in unhex"
 
 randomUniqueId :: IO UniqueId
 randomUniqueId

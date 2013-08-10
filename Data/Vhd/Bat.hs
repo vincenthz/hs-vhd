@@ -21,6 +21,7 @@ import Data.Serialize (encode)
 import Data.Vhd.Batmap
 import Data.Vhd.Types
 import Data.Vhd.Header
+import Data.Vhd.Footer
 import Data.Vhd.Const
 import Data.Vhd.Utils
 import System.IO.MMap

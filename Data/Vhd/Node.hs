@@ -21,6 +21,7 @@ import Data.IORef
 import Data.Serialize (decode, encode)
 import Data.Vhd.Block
 import Data.Vhd.Header
+import Data.Vhd.Footer
 import Data.Vhd.Batmap
 import qualified Data.Vhd.Bat as Bat
 import Data.Vhd.Types
