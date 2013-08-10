@@ -70,7 +70,7 @@ withVhdNode filePath f = do
                 , nodeModified = bmodified
                 }
             modified <- readIORef bmodified
-            when (modified) $ Bat.batUpdateChecksum bat
+            --when (modified) $ Bat.batUpdateChecksum bat
             return a
   where initCryptContext ck = maybe (error "invalid crypt key") id $ vhdCryptInit ck
 

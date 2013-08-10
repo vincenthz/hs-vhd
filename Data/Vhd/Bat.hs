@@ -7,7 +7,7 @@ module Data.Vhd.Bat
     , batWrite
     , batMmap
     , batIterate
-    , batUpdateChecksum
+    --, batUpdateChecksum
     ) where
 
 import Control.Monad
@@ -34,6 +34,7 @@ emptyEntry = 0xffffffff
 hasBitmap (Bat _ _ (Nothing)) = False
 hasBitmap (Bat _ _ (Just bm)) = True
 
+{-
 batmapSet :: VirtualBlockAddress -> Batmap -> IO ()
 batmapSet (VirtualBlockAddress n) (Batmap bitmap _) = bitmapSet bitmap (fromIntegral n)
 
@@ -41,6 +42,7 @@ batmapSet (VirtualBlockAddress n) (Batmap bitmap _) = bitmapSet bitmap (fromInte
 batmapChecksum :: Batmap -> IO Checksum
 batmapChecksum (Batmap (Bitmap p) sz) = complement `fmap` foldM addByte 0 [0 .. (sz - 1)]
     where addByte acc i = (p `peekElemOff` i) >>= \w -> return (acc + fromIntegral w)
+-}
 
 -- | Returns the padded size (in bytes) of the given BAT.
 batGetSize :: Header -> Footer -> Int
@@ -65,7 +67,7 @@ lookupBlock (Bat bptr _ _) (VirtualBlockAddress n) = justBlock `fmap` peekBE ptr
 --   address, in the specified BAT.
 batWrite :: Bat -> VirtualBlockAddress -> PhysicalSectorAddress -> IO ()
 batWrite (Bat bptr _ bmap) vba@(VirtualBlockAddress n) v =
-    pokeBE ptr v >> maybe (return ()) (batmapSet vba) bmap
+    pokeBE ptr v {->> maybe (return ()) (batmapSet vba) bmap-}
   where ptr = bptr `plusPtr` ((fromIntegral n) * 4)
 
 batMmap :: FilePath -> Header -> Footer -> Maybe BatmapHeader -> (Bat -> IO a) -> IO a
