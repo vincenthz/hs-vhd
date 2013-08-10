@@ -6,12 +6,14 @@ module Data.Vhd.Crypt
     , vhdCryptInit
     , vhdEncrypt
     , vhdDecrypt
+    , calculateHash
     ) where
 
 import Control.Applicative ((<$>))
 import Data.List (isSuffixOf)
 import Data.Bits (shiftR)
 import Data.Vhd.Types (VirtualBlockAddress(..), BlockByteAddress(..))
+import Crypto.Hash.SHA256 (hash)
 import Crypto.Cipher.AES
 import System.FilePath
 import System.Directory
@@ -43,6 +45,9 @@ findImplicitCryptKey filepath = do
     case fpr of
         Nothing -> return Nothing
         Just fp -> Just . VhdCryptKey <$> B.readFile fp
+
+calculateHash :: B.ByteString -> VhdCryptKey -> B.ByteString
+calculateHash nonce (VhdCryptKey cryptKey) = hash $ B.concat [nonce, cryptKey]
 
 vhdCryptInit :: VhdCryptKey -> Maybe VhdCryptContext
 vhdCryptInit (VhdCryptKey cryptKey)
