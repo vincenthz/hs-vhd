@@ -40,6 +40,7 @@ Library
                      Data.Vhd.Bat
                      Data.Vhd.Batmap
                      Data.Vhd.Crypt
+                     Data.Vhd.Const
                      Data.Vhd.Bitmap
                      Data.Vhd.Block
                      Data.Vhd.Checksum
