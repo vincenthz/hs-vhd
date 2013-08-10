@@ -1,7 +1,7 @@
 module Data.Vhd.Block
     ( Block
+    , blockAddr
     , BlockDataMapper
-    , Sector
     , sectorPerBlock
     , blockSectorToByte
     , bitmapSizeOfBlockSize
@@ -20,15 +20,15 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Internal as B
-import Data.Vhd.Bat
 import Data.Vhd.Bitmap
 import Data.Vhd.Types
 import Data.Vhd.Const
 import Data.Vhd.Utils
 import Data.Word
+import Control.Applicative
+import Control.Monad
 import Foreign.Ptr
 import Foreign.ForeignPtr (newForeignPtr_)
-import Foreign.Storable
 import System.IO.MMap
 import Data.Byteable
 
@@ -40,7 +40,6 @@ data Block = Block
     , blockPtr  :: Ptr Word8           -- ^ block data pointer
     }
 
-newtype Sector = Sector (Ptr Word8)
 newtype Data = Data (Ptr Word8)
 
 blockSectorToByte :: BlockSectorAddress -> BlockByteAddress
