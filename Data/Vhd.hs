@@ -30,7 +30,6 @@ import qualified Data.Vhd.Block as Block
 import Data.Vhd.Checksum
 import Data.Vhd.Geometry
 import Data.Vhd.Node
-import Data.Vhd.Crypt
 import Data.Vhd.Types
 import Data.Vhd.Header
 import Data.Vhd.UniqueId
@@ -235,7 +234,7 @@ snapshot parentVhd childFilePath = do
         , createParentUnicodeName = Just $ parentUnicodeName parentFilePath
         , createTimeStamp         = Nothing
         , createUuid              = Nothing
-        , createUseBatmap         = hasBitmap headNodeBat
+        , createUseBatmap         = hasBatmap headNodeBat
         , createVirtualSize       = virtualSize parentVhd
         }
   where headNode         = head $ vhdNodes parentVhd
@@ -287,7 +286,7 @@ writeDataRange vhd iniOffset iniContent = write (VirtualByteAddress iniOffset) i
                     contentNext  = snd contentSplit
                     offsetNext   = vaddrNextBlock offset blockSize
 
-    bmap = vhdEncrypt `fmap` nodeCryptCtx node
+    (_,bmap) = getVhdBlockMapper node
 
     node      = head $ vhdNodes vhd
     offsetMax = virtualSize vhd
@@ -335,7 +334,7 @@ unsafeReadDataBlockRange vhd virtualBlockAddress sectorOffset sectorCount result
     copySectorsFromNode sectorsRequested (node, physicalSectorOfBlock) =
         Block.withBlock (nodeFilePath node) (vhdBlockSize vhd) 0
             physicalSectorOfBlock $ copySectorsFromNodeBlock sectorsRequested bmap
-      where bmap = vhdDecrypt `fmap` nodeCryptCtx node
+      where (bmap,_) = getVhdBlockMapper node
 
     copySectorsFromNodeBlock :: BitSet BlockSectorAddress -> Maybe BlockDataMapper -> Block -> IO (BitSet BlockSectorAddress)
     copySectorsFromNodeBlock sectorsRequested bmap block = do

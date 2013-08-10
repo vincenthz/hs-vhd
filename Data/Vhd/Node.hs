@@ -2,6 +2,7 @@
 
 module Data.Vhd.Node
     ( VhdNode (..)
+    , getVhdBlockMapper
     , containsBlock
     , lookupOrCreateBlock
     , withVhdNode
@@ -37,6 +38,11 @@ data VhdNode = VhdNode
     , nodeFilePath :: FilePath
     , nodeModified :: IORef Bool
     }
+
+-- | return the (reading, writing) blockDataMapper for a giving node
+getVhdBlockMapper :: VhdNode -> (Maybe BlockDataMapper, Maybe BlockDataMapper)
+getVhdBlockMapper node =
+    (vhdDecrypt `fmap` nodeCryptCtx node, vhdEncrypt `fmap` nodeCryptCtx node)
 
 withVhdNode :: FilePath -> (VhdNode -> IO a) -> IO a
 withVhdNode filePath f = do
