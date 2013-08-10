@@ -14,6 +14,7 @@ module Data.Vhd.Block
     , unsafeReadDataRange
     , writeDataRange
     , sectorLength
+    , iterateSectors
     ) where
 
 import Data.ByteString (ByteString)
@@ -138,3 +139,11 @@ writeDataRange blockMapper block bba@(BlockByteAddress offset) content = do
         target      = (pointerOfData $ dataOfBlock block) `plusPtr` (fromIntegral offset)
         sectorStart = fromIntegral offset `div` sectorLength
         sectorEnd   = fromIntegral (fromIntegral offset + B.length content) `div` sectorLength
+
+iterateSectors :: Block
+               -> (BlockSectorAddress -> Bool -> IO ())
+               -> IO ()
+iterateSectors block f =
+    forM_ [0..(nbSectors-1)] $ \sector@(BlockSectorAddress bsa) ->
+        bitmapGet (bitmapOfBlock block) (fromIntegral bsa) >>= f sector
+  where nbSectors = sectorPerBlock block
