@@ -1,6 +1,8 @@
 module Data.Vhd.Batmap
     ( BatmapHeader(..)
     , KeyHash(..)
+    , batmapSetKeyHash
+    , batmapClearKeyHash
     ) where
 
 import Control.Applicative
@@ -60,3 +62,11 @@ instance Serialize KeyHash where
 
 instance Sized BatmapHeader where
     sized _ = 512
+
+batmapClearKeyHash :: BatmapHeader -> BatmapHeader
+batmapClearKeyHash bhdr = bhdr { batmapHeaderKeyHash = KeyHash Nothing }
+
+batmapSetKeyHash :: BatmapHeader -> B.ByteString -> B.ByteString -> BatmapHeader
+batmapSetKeyHash bhdr nonce hash
+    | B.length nonce /= 32 || B.length hash /= 32 = error "not valid keyhash"
+    | otherwise = bhdr { batmapHeaderKeyHash = KeyHash (Just (nonce, hash)) }
