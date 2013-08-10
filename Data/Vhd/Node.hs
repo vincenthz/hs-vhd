@@ -9,6 +9,7 @@ module Data.Vhd.Node
     , withMappedBlock
     , iterateBlocks
     , iterateBlockSectors
+    , batmapHeaderChange
     ) where
 
 import Control.Applicative ((<$>))
@@ -83,11 +84,11 @@ withVhdNode filePath f = do
                 , nodeFilePath = filePath
                 , nodeModified = bmodified
                 }
-            modified <- readIORef bmodified
-            --when (modified) $ Bat.batUpdateChecksum bat
             return a
   where initCryptContext ck = maybe (error "invalid crypt key") id $ vhdCryptInit ck
 
+-- | Return the physical sector of a specific block, or create a new one if this block
+-- has not been allocated yet
 lookupOrCreateBlock :: VhdNode -> VirtualBlockAddress -> IO PhysicalSectorAddress
 lookupOrCreateBlock node blockNumber = do
     mpsa <- Bat.lookupBlock (nodeBat node) blockNumber
@@ -97,6 +98,9 @@ lookupOrCreateBlock node blockNumber = do
 
 containsBlock :: VhdNode -> VirtualBlockAddress -> IO Bool
 containsBlock node = Bat.containsBlock (nodeBat node)
+
+batmapHeaderChange :: VhdNode -> (BatmapHeader -> BatmapHeader) -> IO ()
+batmapHeaderChange node f = Bat.batmapHeaderModify (nodeBat node) f
 
 -- | Create a new empty block at the end of the vhd file
 appendEmptyBlock :: VhdNode -> VirtualBlockAddress -> IO PhysicalSectorAddress
@@ -124,8 +128,9 @@ withMappedBlock :: VhdNode -> PhysicalSectorAddress -> VirtualBlockAddress -> (B
 withMappedBlock vhd psa vba f = withBlock (nodeFilePath vhd) blockSize vba psa f
   where blockSize = headerBlockSize $ nodeHeader vhd
 
-iterateBlocks :: VhdNode
-              -> (Block -> IO ())
+-- | Iterate Present blocks in a vhd file
+iterateBlocks :: VhdNode          -- ^ the vhd file
+              -> (Block -> IO ()) -- ^ callback
               -> IO ()
 iterateBlocks vhd f = mapM_ callAt [0..(nbBlocks-1)]
   where nbBlocks = VirtualBlockAddress $ headerMaxTableEntries $ nodeHeader vhd
@@ -135,9 +140,10 @@ iterateBlocks vhd f = mapM_ callAt [0..(nbBlocks-1)]
                 Nothing  -> return ()
                 Just psa -> withMappedBlock vhd psa vba f
 
-iterateBlockSectors :: VhdNode
-                    -> VirtualBlockAddress
-                    -> (Block -> BlockSectorAddress -> Bool -> IO ())
+-- | Iterate sectors in a specific block
+iterateBlockSectors :: VhdNode             -- ^ the vhd file
+                    -> VirtualBlockAddress -- ^ block address
+                    -> (Block -> BlockSectorAddress -> Bool -> IO ()) -- ^ callback
                     -> IO ()
 iterateBlockSectors vhd vba f = do
     mpsa <- Bat.lookupBlock (nodeBat vhd) vba
