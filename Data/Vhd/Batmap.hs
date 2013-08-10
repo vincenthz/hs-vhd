@@ -66,7 +66,7 @@ instance Sized BatmapHeader where
 batmapClearKeyHash :: BatmapHeader -> BatmapHeader
 batmapClearKeyHash bhdr = bhdr { batmapHeaderKeyHash = KeyHash Nothing }
 
-batmapSetKeyHash :: BatmapHeader -> B.ByteString -> B.ByteString -> BatmapHeader
-batmapSetKeyHash bhdr nonce hash
+batmapSetKeyHash :: B.ByteString -> B.ByteString -> BatmapHeader -> BatmapHeader
+batmapSetKeyHash nonce hash bhdr
     | B.length nonce /= 32 || B.length hash /= 32 = error "not valid keyhash"
     | otherwise = bhdr { batmapHeaderKeyHash = KeyHash (Just (nonce, hash)) }
