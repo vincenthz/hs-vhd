@@ -31,6 +31,7 @@ Library
                    , random
                    , storable-endian
                    , cipher-aes >= 0.2.0
+                   , cryptohash
   Exposed-modules:   Data.Vhd
                      Data.Vhd.Lowlevel
                      Data.Vhd.Time
@@ -68,6 +69,7 @@ Test-Suite test-vhd
                    , cereal
                    , random
                    , vhd
+                   , cryptohash
 
 Executable           vhd
   Main-Is:           Vhd.hs
@@ -87,6 +89,7 @@ Executable           vhd
                    , storable-endian
                    , vhd
                    , cipher-aes >= 0.2.0
+                   , cryptohash
   else
     Buildable:       False
 

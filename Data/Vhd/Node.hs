@@ -58,6 +58,14 @@ withVhdNode filePath f = do
                             then return $ Just bHdr
                             else return Nothing
             else return Nothing
+        -- make sure the key match
+        case key of
+            Nothing -> return ()
+            Just k  -> case batmapHeaderKeyHash `fmap` mBatmapHdr of
+                        Just (KeyHash (Just (nonce, expected))) -> do
+                            when (expected /= calculateHash nonce k) $ error "keyhash differ"
+                        _             -> return ()
+        -- now mmap the bat
         Bat.batMmap filePath header footer mBatmapHdr $ \bat -> do
             bmodified <- newIORef False
             a <- f $ VhdNode
