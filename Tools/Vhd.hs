@@ -11,6 +11,7 @@ import qualified Data.Vhd.Block as Block
 import Data.Vhd.Checksum
 import Data.Vhd.Node
 import Data.Vhd.Types
+import Data.Vhd.Batmap
 import Data.Vhd.Time
 import System.Environment (getArgs)
 import System.Console.GetOpt
@@ -108,6 +109,17 @@ cmdRead opts [file] = withVhdNode file $ \node -> do
         , ("uuid             ", show $ footerUniqueId ftr)
         , ("timestamp        ", showTimestamp $ footerTimeStamp ftr)
         ]
+    let bat = nodeBat node
+    case batBitmap bat of
+        Nothing        -> putStrLn "* no batmap"
+        Just batmapHdr -> do
+            putStrLn "BATMAP:"
+            mapM_ (\(f, s) -> putStrLn ("  " ++ f ++ " : " ++ s))
+                [ ("version         ", show $ headerVersion hdr)
+                , ("keyhash         ", showKeyHash $ batmapHeaderKeyHash batmapHdr)
+                , ("batmap-checksum ", showChecksum (batmapHeaderChecksum batmapHdr) False)
+                ]
+
     allocated <- newIORef 0
     batIterate (nodeBat node) (fromIntegral $ headerMaxTableEntries hdr) $ \i@(VirtualBlockAddress a) n -> do
         case n of
@@ -115,6 +127,8 @@ cmdRead opts [file] = withVhdNode file $ \node -> do
             Just psa -> modifyIORef allocated ((+) 1) >> when (DumpBat `elem` opts) (printf "BAT[%.5x] = %08x\n" a psa)
     nb <- readIORef allocated
     putStrLn ("blocks allocated  : " ++ show nb ++ "/" ++ show (headerMaxTableEntries hdr))
+  where showKeyHash (KeyHash Nothing) = "nothing"
+        showKeyHash (KeyHash (Just (nonce, hash))) = "nonce=" ++ show nonce ++ ", hash=" ++ show hash
 cmdRead _ _ = error "usage: read <file>"
 
 cmdSnapshot _ [fileVhdParent, fileVhdChild] =
