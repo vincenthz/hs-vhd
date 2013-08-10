@@ -13,6 +13,9 @@ module Data.Vhd.Block
     , unsafeReadData
     , unsafeReadDataRange
     , writeDataRange
+    -- * sector manipulation
+    , readSector
+    , writeSector
     , sectorLength
     , iterateSectors
     ) where
@@ -139,6 +142,46 @@ writeDataRange blockMapper block bba@(BlockByteAddress offset) content = do
         target      = (pointerOfData $ dataOfBlock block) `plusPtr` (fromIntegral offset)
         sectorStart = offset `div` sectorLength
         sectorEnd   = (fromIntegral offset + B.length content) `div` sectorLength
+
+-- | Return the whole sector of a specific block if present
+readSector :: Maybe BlockDataMapper -- ^ an optional data mapper function
+           -> Block                 -- ^ the mapped block
+           -> BlockSectorAddress    -- ^ the sector address
+           -> IO (Maybe ByteString)
+readSector blockMapper block (BlockSectorAddress bsa) =
+    allocated >>= \isAllocated ->
+        case isAllocated of
+            False -> return Nothing
+            True  -> Just . applyMapper <$> B.create sectorLength copy
+  where
+        allocated = bitmapGet bitmap (fromIntegral bsa)
+        applyMapper = maybe id (\bm -> bm (blockAddr block) bba) blockMapper
+        bba    = BlockByteAddress $ fromIntegral offset
+        bitmap = bitmapOfBlock block
+        offset = fromIntegral bsa * sectorLength
+        addr   = (pointerOfData $ dataOfBlock block) `plusPtr` offset
+        copy dst = B.memcpy dst addr sectorLength
+
+-- | Write the whole sector of a specific block
+--
+-- the content passed need to be the size of the sector length
+writeSector :: Maybe BlockDataMapper -- ^ an optional data mapper function
+            -> Block                 -- ^ the mapped block
+            -> BlockSectorAddress    -- ^ the sector address
+            -> ByteString            -- ^ content (of sector length)
+            -> IO ()
+writeSector blockMapper block (BlockSectorAddress bsa) content
+    | B.length content /= sectorLength = error "writeSector data need to be sector'ed size"
+    | otherwise                        = do
+        bitmapSet bitmap (fromIntegral bsa)
+        B.unsafeUseAsCString (applyMapper content) $ \source ->
+            B.memcpy target (castPtr source) sectorLength
+  where
+        applyMapper = maybe id (\bm -> bm (blockAddr block) bba) blockMapper
+        bba    = BlockByteAddress $ fromIntegral offset
+        bitmap = bitmapOfBlock block
+        offset = fromIntegral bsa * sectorLength
+        target = (pointerOfData $ dataOfBlock block) `plusPtr` offset
 
 iterateSectors :: Block
                -> (BlockSectorAddress -> Bool -> IO ())
