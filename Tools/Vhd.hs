@@ -8,6 +8,7 @@ import Data.IORef
 import Data.Vhd
 import Data.Vhd.Lowlevel
 import Data.Vhd.Bat
+import Data.Vhd.Crypt
 import qualified Data.Vhd.Block as Block
 import Data.Vhd.Checksum
 import Data.Vhd.Node

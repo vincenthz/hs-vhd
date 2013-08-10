@@ -5,6 +5,7 @@ module Data.Vhd.Node
     , getVhdBlockMapper
     , containsBlock
     , lookupOrCreateBlock
+    , openCryptKey
     , withVhdNode
     , withMappedBlock
     , iterateBlocks

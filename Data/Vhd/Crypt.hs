@@ -3,6 +3,7 @@ module Data.Vhd.Crypt
     , VhdCryptContext
     , findImplicitCryptFile
     , findImplicitCryptKey
+    , openCryptKey
     , vhdCryptInit
     , vhdEncrypt
     , vhdDecrypt
@@ -44,7 +45,10 @@ findImplicitCryptKey filepath = do
     fpr <- findImplicitCryptFile filepath
     case fpr of
         Nothing -> return Nothing
-        Just fp -> Just . VhdCryptKey <$> B.readFile fp
+        Just fp -> Just <$> openCryptKey fp
+
+openCryptKey :: FilePath -> IO VhdCryptKey
+openCryptKey fp = VhdCryptKey <$> B.readFile fp
 
 calculateHash :: B.ByteString -> VhdCryptKey -> B.ByteString
 calculateHash nonce (VhdCryptKey cryptKey) = hash $ B.concat [nonce, cryptKey]
