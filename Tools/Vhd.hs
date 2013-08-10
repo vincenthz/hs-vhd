@@ -1,4 +1,5 @@
 import Control.Applicative
+import Control.Concurrent.MVar
 import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -33,6 +34,31 @@ cmdConvert _ [fileRaw, fileVhd, size] = convert =<< rawSizeBytes where
                 { createVirtualSize = vhdSizeBytes }
             withVhd fileVhd $ \vhd -> BL.readFile fileRaw >>= writeDataRange vhd 0
 cmdConvert _ _ = error "usage: convert <raw file> <vhd file> <size MiB>"
+
+cmdTranslate opts [fileVhd, resumeFile] = do
+    let isDecrypt = Decrypt `elem` opts
+
+    withVhdNode fileVhd $ \vhd -> do
+        let (dbmap,_) = getVhdBlockMapper vhd
+        iterateBlocks vhd $ \block ->
+            Block.iterateSectors block $ \bsa isAllocated -> do
+                --putStrLn ("blockAddr: " ++ show (Block.blockAddr block) ++ " sector " ++ show bsa ++ " is allocated: " ++ show isAllocated)
+                case isAllocated of
+                    True -> do r <- Block.readSector dbmap block bsa
+                               case r of
+                                   Nothing -> error "inconsistency: sector should be allocated"
+                                   Just b  -> Block.writeSector writeBmap block bsa b
+                    False -> return ()
+        batmapHeaderChange vhd changeBatmapHdrF
+        -- FIXME: set new hash if available
+        return ()
+  where isDecrypt = Decrypt `elem` opts
+        writeBmap | isDecrypt = Nothing
+                  | otherwise = error "unknown writing translation"
+        changeBatmapHdrF | isDecrypt = batmapClearKeyHash
+                         | otherwise = error "unknown batmap mapping option"
+
+cmdTranslate _ _ = error "usage: translate <vhd file> <resume file>"
 
 cmdCreate _ [name, size] =
     create name $ defaultCreateParameters
@@ -166,6 +192,7 @@ data OptFlag =
     | Offset String
     | Size String
     | DumpBat
+    | Decrypt
     deriving (Show,Eq)
 
 knownCommands :: [ (String, [String] -> IO ()) ]
@@ -177,6 +204,7 @@ knownCommands =
     , ("set-uuid", wrapOpt cmdPropSetUuid [helpOpt])
     , ("read"    , wrapOpt cmdRead [helpOpt,dumpBatOpt])
     , ("snapshot", wrapOpt cmdSnapshot [helpOpt])
+    , ("translate", wrapOpt cmdTranslate [helpOpt,decryptOpt])
     , ("help"    , wrapOpt cmdHelp [])
     ]
   where wrapOpt f opts xs =
@@ -188,6 +216,7 @@ knownCommands =
         offsetOpt = Option ['o'] ["offset"] (ReqArg Offset "offset") "change the start offset"
         sizeOpt   = Option ['z'] ["size"] (ReqArg Size "size") "size in bytes"
         dumpBatOpt= Option []    ["dump-bat"] (NoArg DumpBat) "dump bat allocation"
+        decryptOpt= Option []    ["decrypt"] (NoArg Decrypt) "decrypt the vhd"
 
 usage msg = do
     maybe (return ()) putStrLn msg
