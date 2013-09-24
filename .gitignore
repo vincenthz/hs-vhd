@@ -3,3 +3,6 @@ dist
 *.o
 *.swo
 *.swp
+*.vhd
+*.key
+*.tmp
